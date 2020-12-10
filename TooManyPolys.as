@@ -1,6 +1,11 @@
 #include "HashMap"
 
+// IMPORTANT:
+// You need to create a symlink: svencoop_addon/models/player -> svencoop_addon/scripts/plugins/store/playermodelfolder
+// also all player model paths should be lowercase, and the player model folder should include default models as well as custom
+
 // TODO:
+// - precache secondary models
 // - allow manually setting a secondary model
 // - performance improvements?
 
@@ -28,12 +33,14 @@ dictionary g_player_states;
 array<bool> g_should_player_reduce_polys;
 bool g_enabled = true;
 
-const string defaultLowpolyModel = "player-10up"; // should be precached by the PlayerModelPrecacheDyn plugin
+const string defaultLowpolyModel = "player-10up";
 const int defaultLowpolyModelPolys = 142;
 const int unknownModelPolys = 50000; // assume the worst (better not to risk lowering FPS)
 
 const string moreInfoMessage = "Type '.hipoly' in console for more info.";
 const string beingReplacedMessage = "Your model is being replaced to improve everyone's FPS. " + moreInfoMessage + "\n";
+
+array<string> g_ModelList; // list of models to precache
 
 void PluginInit()
 {
@@ -50,6 +57,46 @@ void PluginInit()
 	load_model_list();
 	
 	g_Scheduler.SetInterval("update_models", 0.1, -1);
+}
+
+void MapInit() {
+	array<string> precachedModels;
+
+	// copied from PlayerModelPrecacheDyn
+	for ( uint i = 0; i < g_ModelList.length(); i++ ) {
+		File@ pFile = g_FileSystem.OpenFile( "scripts/plugins/store/playermodelfolder/" + g_ModelList[i] + "/" + g_ModelList[i] + ".mdl", OpenFile::READ );
+
+		if ( pFile !is null && pFile.IsOpen() ) {
+			pFile.Close();
+			g_Game.PrecacheModel( "models/player/" + g_ModelList[i] + "/" + g_ModelList[i] + ".mdl" );
+			precachedModels.insertLast(g_ModelList[i]);
+		}
+
+		File@ pFileT = g_FileSystem.OpenFile( "scripts/plugins/store/playermodelfolder/" + g_ModelList[i] + "/" + g_ModelList[i] + "t.mdl", OpenFile::READ );
+
+		if ( pFileT !is null && pFileT.IsOpen() ) {
+			pFileT.Close();
+			g_Game.PrecacheGeneric( "models/player/" + g_ModelList[i] + "/" + g_ModelList[i] + "t.mdl" );
+		}
+
+		File@ pFileP = g_FileSystem.OpenFile( "scripts/plugins/store/playermodelfolder/" + g_ModelList[i] + "/" + g_ModelList[i] + ".bmp", OpenFile::READ );
+
+		if ( pFileP !is null && pFileP.IsOpen() ) {
+			pFileP.Close();
+			g_Game.PrecacheGeneric( "models/player/" + g_ModelList[i] + "/" + g_ModelList[i] + ".bmp" );
+		}
+	}
+
+	// create an ent to share the model list with other plugins
+	dictionary keys;
+	keys["targetname"] = "TooManyPolys";
+	for (uint i = 0; i < precachedModels.size(); i++) {
+		keys["$s_model" + i] = precachedModels[i];
+	}
+	g_EntityFuncs.CreateEntity("info_target", keys, true);		
+
+	g_ModelList.resize( 0 );
+	g_ModelList.insertLast(defaultLowpolyModel);
 }
 
 // Will create a new state if the requested one does not exit
@@ -74,6 +121,21 @@ PlayerState@ getPlayerState(CBasePlayer@ plr)
 }
 
 HookReturnCode ClientJoin( CBasePlayer@ plr ) {	
+	KeyValueBuffer@ p_PlayerInfo = g_EngineFuncs.GetInfoKeyBuffer( plr.edict() );
+
+	if ( g_ModelList.find( p_PlayerInfo.GetValue( "model" ) ) < 0 ) {
+		int res = p_PlayerInfo.GetValue( "model" ).FindFirstOf( "/" );
+
+		if ( res < 0 ) {
+			string lowermodel = p_PlayerInfo.GetValue( "model" ).ToLowercase();
+			g_ModelList.insertLast( lowermodel );
+			
+			if (g_model_list.exists(lowermodel)) { // also precache the low-poly version
+				g_ModelList.insertLast(g_model_list.get(lowermodel).replacement);
+			}
+		}
+	}
+
 	return HOOK_CONTINUE;
 }
 
