@@ -7,8 +7,6 @@
 // - use new replacement if swapping models while reduced
 // - angles dont work while dead
 // - special characters in names mess up .listpoly table alignment
-// - redirect models:
-//    - all kannas -> 2d kanna
 
 // can't reproduce:
 // - vis checks don't work sometimes:
@@ -191,10 +189,13 @@ void load_model_list() {
 			println("TooManyPolys: Failed to parse model info: " + line);
 			continue;
 		}
-		parts[0].Trim();
-		parts[1].Trim();
-		parts[2].Trim();
-		parts[3].Trim();
+		for (int i = 0; i < 4; i++) {
+			parts[i].Trim();
+			
+			if (parts[i][0] == ' ') { // because Trim doesn't actually work
+				parts[i] = '';
+			}
+		}
 		string model_name = parts[0];
 		int poly_count = atoi(parts[1]);
 		string sd_model = parts[2];
@@ -203,15 +204,8 @@ void load_model_list() {
 		
 		ModelInfo info;
 		info.polys = poly_count;
-		info.replacement_sd = sd_model;
-		info.replacement_ld = ld_model;
-		
-		if (info.replacement_sd.Length() == 0) {
-			info.replacement_sd = defaultLowpolyModel;
-		}
-		if (info.replacement_ld.Length() == 0) {
-			info.replacement_ld = defaultLowpolyModel;
-		}
+		info.replacement_sd = sd_model.Length() > 0 ? sd_model : defaultLowpolyModel;
+		info.replacement_ld = ld_model.Length() > 0 ? ld_model : defaultLowpolyModel;
 		
 		g_model_list.put(model_name, info);
 		modelCount++;
@@ -631,7 +625,7 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        Because of this, your player model is assumed to have an insanely high\n');
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        poly count (' + formatInteger(unknownModelPolys) +').\n');
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Your model\'s detail levels:\n');
-					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        HD Model: ' + state.desiredModel + ' (' + formatInteger(info.polys) + ' polys)\n');
+					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        HD Model: ' + state.desiredModel + ' (' + formatInteger(unknownModelPolys) + ' polys)\n');
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        SD Model: ' + defaultLowpolyModel + ' (' + formatInteger(defaultLowpolyModelPolys) + ' polys)\n');
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        LD Model: ' + defaultLowpolyModel + ' (' + formatInteger(defaultLowpolyModelPolys) + ' polys)\n');
 				}
