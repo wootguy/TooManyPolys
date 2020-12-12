@@ -547,12 +547,14 @@ string formatInteger(int ival) {
 class ListInfo {
 	string playerName;
 	string modelName;
+	string preference;
+	string polyString;
 	int polys; // -1 = unknown
 }
 
 void list_model_polys(CBasePlayer@ plr) {
-	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nPlayer Name              Model Name               Polygon Count\n');
-	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '-------------------------------------------------------------------------\n');
+	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nPlayer Name              Model Name               Polygon Count        Preference\n');
+	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '---------------------------------------------------------------------------------\n');
 
 	array<ListInfo> mlist;
 
@@ -588,10 +590,16 @@ void list_model_polys(CBasePlayer@ plr) {
 		ListInfo info;
 		info.playerName = pname;
 		info.modelName = modelName;
-		info.polys = -1;
+		info.preference = pstate.prefersHighPoly ? "HD" : "LD";
+		info.polys = g_model_list.exists(pstate.desiredModel) ? int(g_model_list.get(pstate.desiredModel).polys) : -1;
 		
-		if (g_model_list.exists(pstate.desiredModel)) {
-			info.polys = g_model_list.get(pstate.desiredModel).polys;
+		info.polyString = "??? (not installed)";
+		if (info.polys != -1) {
+			info.polyString = "" + formatInteger(info.polys);
+		}
+		
+		while (info.polyString.Length() < 24) {
+			info.polyString += " ";
 		}
 		
 		mlist.insertLast(info);
@@ -606,19 +614,18 @@ void list_model_polys(CBasePlayer@ plr) {
 	int total_polys = 0;
 	
 	for (uint i = 0; i < mlist.size(); i++) {
-		string polyCount = "unknown (not installed)";
 		if (mlist[i].polys != -1) {
-			polyCount = "" + formatInteger(mlist[i].polys);
 			total_polys += mlist[i].polys;
 		} else {
-			mlist[i].polys += unknownModelPolys;
+			total_polys += unknownModelPolys;
 		}
 		
-		g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, mlist[i].playerName + ' ' + mlist[i].modelName + ' ' + polyCount + '\n');
+		g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 
+			mlist[i].playerName + ' ' + mlist[i].modelName + ' ' + mlist[i].polyString + ' ' + mlist[i].preference + '\n');
 	}
 	
 	int perPlayerLimit = cvar_max_player_polys.GetInt() / g_Engine.maxClients;
-	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '-------------------------------------------------------------------------\n\n');
+	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '---------------------------------------------------------------------------------\n\n');
 	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Total polys      : ' + formatInteger(total_polys) + '\n');
 	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Max visible polys: ' + formatInteger(cvar_max_player_polys.GetInt()) + '\n');
 	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Safe poly count  : ' + formatInteger(perPlayerLimit) + '    (models below this limit will never be replaced)\n\n');
