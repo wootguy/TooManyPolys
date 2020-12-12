@@ -414,7 +414,7 @@ aasupport_pac / 2342 /  /
 ab_dorothy / 3362 /  / 
 ab_james_sunderland / 7504 /  / 
 ab_kanna_coco / 51956 /  / 2d_ab_kanna_coco
-ab_kratos / 21976 /  / 
+ab_kratos / 21976 /  / 2d_ab_kratos
 ab_rei_ryghts / 20289 /  / 
 ab_rin_shibuya / 33091 /  / 
 ab_sakura_kinomoto / 54843 /  / 
@@ -566,7 +566,7 @@ al_akashi / 14106 /  /
 al_ayanami / 20032 /  / 
 al_ayanami-c2 / 20032 /  / 
 al_git / 564 /  / 
-al_nagato / 32782 /  / 
+al_nagato / 32782 / al_nagato_ld / 
 al_nagato_ld / 5472 /  / 
 alan / 1360 /  / 
 alanamp / 758 /  / 
@@ -3713,9 +3713,9 @@ kancolle_takao_n_v2 / 22881 /  /
 kane / 3128 /  / 
 kanibusklown / 1420 /  / 
 kanimiso / 712 /  / 
-kanna_christmas / 51126 /  / 
+kanna_christmas / 51126 /  / 2d_kanna_christmas
 kanna_d / 29 /  / kanna_d
-kanna_halloween / 45644 /  / 
+kanna_halloween / 45644 /  / 2d_kmd_kanna
 kao1 / 2184 /  / 
 kao2 / 2184 /  / 
 kao3 / 2184 /  / 
@@ -3808,8 +3808,8 @@ kf_scrake / 3422 /  /
 kf_scully / 5977 /  / 
 kf_serval / 40223 /  / 
 kf_serval_v2 / 22011 /  / 
-kf_shoebill / 11849 /  / 
-kf_shoebill_v2 / 35892 /  / 
+kf_shoebill / 11849 /  / 2d_kf_shoebill
+kf_shoebill_v2 / 35892 / kf_shoebill / 2d_kf_shoebill
 kf_siren / 4168 /  / 
 kf_stalker / 5842 /  / 
 kf_stalker2 / 5842 /  / 
@@ -3862,7 +3862,7 @@ klonoa / 4471 /  /
 klonoa_2 / 3628 /  / 
 km_karenkujo / 14887 /  / 2d_km_karenkujo
 km_karenkujo_alt / 14950 /  / 2d_km_karenkujo_alt
-kmd_kanna / 51126 /  / 
+kmd_kanna / 51126 /  / 2d_kmd_kanna
 kmd_kanna / 51126 /  / 2d_kmd_kanna
 kmd_lucoa / 18717 /  / 
 kmd_lucoa_alt / 19450 /  / 
@@ -3900,7 +3900,7 @@ kool4 / 2695 /  /
 kopassus / 2950 /  / 
 kotik / 1878 /  / 
 kotori / 5780 /  / 
-kratos / 14917 /  / 
+kratos / 14917 /  / 2d_ab_kratos
 krause / 5764 /  / 
 krauser / 5432 /  / 
 krauser_beret / 5693 /  / 
@@ -4158,8 +4158,8 @@ lt_jhonela / 6876 /  /
 lt_jhonela1 / 15861 /  / 
 lt_jhonlee / 21976 /  / 
 lt_jhosep / 1821 /  / 
-lt_kanna / 51126 /  / 
-lt_kanna1 / 51126 /  / 
+lt_kanna / 51126 /  / 2d_kmd_kanna
+lt_kanna1 / 51126 /  / 2d_kmd_kanna
 lt_kermit / 628 /  / 
 lt_koa / 30605 /  / 
 lt_laalaa / 2012 /  / 
@@ -4174,7 +4174,7 @@ lt_miko2 / 24667 /  /
 lt_mikupanda / 15509 /  / 
 lt_minato_03 / 30578 /  / 
 lt_minato_04 / 3356 /  / 
-lt_momiji / 20185 /  / 
+lt_momiji / 20185 / touhou_momiji / 
 lt_morenazo / 1285 /  / 
 lt_naruto / 3758 /  / 
 lt_nikooneshot_v2 / 7882 /  / 
@@ -4600,7 +4600,7 @@ moldybread / 4315 /  /
 molly / 1067 /  / 
 molly2 / 1958 /  / 
 momia / 368 /  / 
-momiji_inubashiri / 20215 /  / 2d_momiji_inubashiri
+momiji_inubashiri / 20215 / touhou_momiji / 2d_momiji_inubashiri
 mona / 1284 /  / 
 mona_f / 2074 /  / 
 mona_helmet1 / 1714 /  / 
@@ -6579,8 +6579,8 @@ species / 1636 /  /
 spenguin / 178 /  / 
 spermgrey / 48 /  / spermgrey
 spermslime / 48 /  / spermslime
-spess_kagerou / 20509 /  / 
-spess_kagerou_alt / 18859 /  / 
+spess_kagerou / 20509 / touhou_kagerou / 2d_touhou_kagerou_v2
+spess_kagerou_alt / 18859 / touhou_kagerou / 2d_touhou_kagerou_v2
 spess_kagerou_bikini / 13447 /  / 
 spess_kagerou_woof / 4433 /  / 
 spet / 1439 /  / 
@@ -6660,7 +6660,7 @@ spp_marijane / 590 /  /
 spp_mbrs / 4570 /  / 
 spp_mcdonold / 797 /  / 
 spp_mikupanda / 15509 /  / 
-spp_momiji / 20215 /  / 
+spp_momiji / 20215 /  / 2d_momiji_inubashiri
 spp_noire / 16395 /  / 
 spp_pepsi / 151 /  / 
 spp_pinguino / 178 /  / 
@@ -7336,8 +7336,8 @@ touhou_chen / 31371 /  / 2d_touhou_chen
 touhou_chen_v2 / 16871 /  / 
 touhou_cirno / 32185 /  / 
 touhou_clownpiece / 4444 /  / 2d_touhou_clownpiece
-touhou_clownpiece_v2 / 14215 /  / 
-touhou_clownpiss / 13515 /  / 
+touhou_clownpiece_v2 / 14215 / touhou_clownpiece / 2d_touhou_clownpiece
+touhou_clownpiss / 13515 / touhou_clownpiece / 2d_touhou_clownpiece
 touhou_daiyousei / 29661 /  / 2d_touhou_daiyousei
 touhou_flan / 4558 /  / 
 touhou_flan_dress / 2968 /  / 
@@ -7351,9 +7351,9 @@ touhou_ikusan / 5280 /  /
 touhou_ikusan_h / 6280 /  / 
 touhou_inaba_tewi / 30846 /  / 2d_touhou_inaba_tewi
 touhou_izayoi_sakuya / 9935 /  / 2d_touhou_izayoi_sakuya
-touhou_kagerou / 5206 /  / 
+touhou_kagerou / 5206 /  / 2d_touhou_kagerou_v2
 touhou_kagerou_bikini / 13037 /  / 
-touhou_kagerou_v2 / 20247 /  / 2d_touhou_kagerou_v2
+touhou_kagerou_v2 / 20247 / touhou_kagerou / 2d_touhou_kagerou_v2
 touhou_kaguya / 14070 /  / 
 touhou_kanako / 5537 /  / 
 touhou_kazami_yuuka_1 / 10826 /  / 
@@ -7374,10 +7374,10 @@ touhou_meiling / 30252 /  /
 touhou_mia / 6050 /  / 
 touhou_minoriko / 5855 /  / 
 touhou_mokou / 16972 /  / 
-touhou_momiji / 7548 /  / 
-touhou_momiji / 21355 /  / 
-touhou_momiji_inuba / 20185 /  / 
-touhou_momiji_old / 7548 /  / 
+touhou_momiji / 7548 /  / 2d_momiji_inubashiri
+touhou_momiji / 21355 /  / 2d_momiji_inubashiri
+touhou_momiji_inuba / 20185 / touhou_momiji / 2d_momiji_inubashiri
+touhou_momiji_old / 7548 /  / 2d_momiji_inubashiri
 touhou_nagae_iku / 35981 /  / 
 touhou_new_cirno / 4562 /  / 
 touhou_new_dai / 4958 /  / 
@@ -7675,7 +7675,7 @@ vocaloid_yuzuki-yukari / 41062 /  /
 vocaloid_yuzuki_yukari / 47126 /  / 
 vortigaunt_junior / 3629 /  / 
 votoms / 763 /  / 
-vtuber_kizuna / 54179 /  / 
+vtuber_kizuna / 54179 / vtuber_kizuna_ld_v3 / 
 vtuber_kizuna_ld / 4135 /  / 
 vtuber_kizuna_ld_v3 / 4135 /  / 
 w.w.a / 505 /  / 
