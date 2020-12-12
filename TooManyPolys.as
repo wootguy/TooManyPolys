@@ -309,20 +309,15 @@ void reduce_model_polys() {
 		
 		// player manually changing their model?
 		string currentModel = pKeyvalues.GetValue( "model" ).ToLowercase();
-		if (currentModel != state.desiredModel && g_player_lod[i] == state.lod) {
-			
-			if (g_player_lod[i] != LOD_HD) {
-				ModelInfo info = g_model_list.get(state.desiredModel);
-				string replaceModel = g_player_lod[i] == LOD_SD ? info.replacement_sd : info.replacement_ld;
-				
-				if (currentModel != replaceModel) {
-					g_PlayerFuncs.SayText(plr, beingReplacedMessage);
-					pKeyvalues.SetValue("model", replaceModel);
-					state.desiredModel = currentModel;
-				}
-			} else {
-				state.desiredModel = currentModel;
-			}
+		string targetModel = state.desiredModel;
+		if (g_player_lod[i] != LOD_HD) {
+			ModelInfo info = g_model_list.get(state.desiredModel);
+			targetModel = g_player_lod[i] == LOD_SD ? info.replacement_sd : info.replacement_ld;
+		}
+		
+		if (currentModel != targetModel && g_player_lod[i] == state.lod) {
+			state.desiredModel = currentModel;
+			state.lod = LOD_HD; // force replacement now
 		}
 		
 		if (g_player_lod[i] != LOD_HD) {
@@ -341,7 +336,7 @@ void reduce_model_polys() {
 			state.lod = g_player_lod[i];
 			pKeyvalues.SetValue("model", replaceModel);
 			
-			println("Replaced model for " + plr.pev.netname + " is " + replaceModel + " DESIRED IS " + state.desiredModel);
+			//println("Replaced model for " + plr.pev.netname + " is " + replaceModel + " DESIRED IS " + state.desiredModel);
 		}
 		else {
 			// restore the desired model
@@ -354,7 +349,7 @@ void reduce_model_polys() {
 				continue;
 			}
 			
-			println("Restore model " + state.desiredModel + " for " + plr.pev.netname);
+			//println("Restore model " + state.desiredModel + " for " + plr.pev.netname);
 			
 			pKeyvalues.SetValue("model", state.desiredModel);
 			state.lod = LOD_HD;
