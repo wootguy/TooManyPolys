@@ -5,14 +5,17 @@
 // - allow manually setting a secondary model
 // - performance improvements?
 // - update ghosts plugin to use new info_target
-// - use new replacement if swapping models while reduced
 // - angles dont work while dead
 // - special characters in names mess up .listpoly table alignment
+// - sort models again after doing the sd pass
+// - use ld version for sd version if no sd version (kmd_kanna)
+// - replace knuckles models with 2d
+// - opt in to pref instead of out, and unknown model polys to helmet
 
 // can't reproduce:
 // - vis checks don't work sometimes:
 //   - only on map start? Not until everyone connected with non-0 ping?
-//   - only the spawn area? (hunger)
+//   - only the spawn area? (hunger, rc_labyrinth)
 //   - no vis (sc_mision73)
 
 void print(string text) { g_Game.AlertMessage( at_console, text); }
@@ -453,7 +456,7 @@ void debug(CBasePlayer@ plr) {
 		params.channel = 2;
 		
 		string info = "Visible players: " + state.debugVisiblePlayers + " / " + state.debugTotalPlayers;
-		info += "\nPolys: " + formatInteger(state.debugPolys);
+		info += "\nVisible polys: " + formatInteger(state.debugPolys);
 		if (state.debugPolys != state.debugReducedPolys)
 			info += " (reduced to " + formatInteger(state.debugReducedPolys) + ")";
 		
