@@ -1,4 +1,5 @@
 #include "HashMap"
+#include "UserInfo"
 #include "util"
 
 // TODO:
@@ -39,12 +40,9 @@ enum LEVEL_OF_DETAIL
 }
 
 class PlayerState {
-	string desiredModel;
-	int lod; // level of detail (model replacement used if > 0)
-	bool prefersHighPoly; // true if player would rather have horrible FPS than see low poly models
-	bool debug; // true if player would rather have horrible FPS than see low poly models
-	bool wasEverNotified; // true if the player was ever notified about model replacement
+	bool prefersHighPoly = true; // true if player would rather have horrible FPS than see low poly models
 	
+	bool debug;
 	int debugPolys;
 	int debugReducedPolys;
 	int debugVisiblePlayers;
@@ -56,35 +54,40 @@ const int hashmapBucketCount = 4096;
 HashMapModelInfo g_model_list(hashmapBucketCount);
 CCVar@ cvar_max_player_polys;
 dictionary g_player_states;
-array<int> g_player_lod; // level of detail the player should be using
-bool g_enabled = true;
 
 const string defaultLowpolyModel = "player-10up";
 const int defaultLowpolyModelPolys = 142;
 const int unknownModelPolys = 50000; // assume the worst (better not to risk lowering FPS)
 
 const string moreInfoMessage = "Type '.hipoly' in console for more info.";
-const string beingReplacedMessage = "Your model is being replaced to improve everyone's FPS. " + moreInfoMessage + "\n";
 
 array<string> g_ModelList; // list of models to precache
+array<array<int>> g_replacers; // player idx -> current LOD seen for other players
 
-array<string> g_replaced_players; // players currently being model-swapped
-array<array<int>> g_replacers; // player idx -> requested LOD for another player idx
-
-void PluginInit()
-{
+void PluginInit() {
 	g_Module.ScriptInfo.SetAuthor( "w00tguy" );
 	g_Module.ScriptInfo.SetContactInfo( "asdf" );
 	
 	g_Hooks.RegisterHook( Hooks::Player::ClientSay, @ClientSay );
 	
-	@cvar_max_player_polys = CCVar("max_player_polys", 64000, "max player visble polys", ConCommandFlag::AdminOnly);
+	@cvar_max_player_polys = CCVar("max_player_polys", 4000, "max player visble polys", ConCommandFlag::AdminOnly);
 	
 	g_Hooks.RegisterHook( Hooks::Player::ClientPutInServer, @ClientJoin );
 	
 	load_model_list();
 	
 	g_Scheduler.SetInterval("update_models", 0.1, -1);
+	
+	g_replacers.resize(0);
+	g_replacers.resize(33);
+	
+	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {
+		g_replacers[i].resize(33);
+	}
+}
+
+void PluginExit() {
+	reset_models();
 }
 
 void MapInit() {
@@ -128,8 +131,7 @@ void MapInit() {
 }
 
 // Will create a new state if the requested one does not exit
-PlayerState@ getPlayerState(CBasePlayer@ plr)
-{
+PlayerState@ getPlayerState(CBasePlayer@ plr) {
 	if (plr is null or !plr.IsConnected())
 		return null;
 		
@@ -141,8 +143,6 @@ PlayerState@ getPlayerState(CBasePlayer@ plr)
 	if ( !g_player_states.exists(steamId) )
 	{
 		PlayerState state;
-		KeyValueBuffer@ p_PlayerInfo = g_EngineFuncs.GetInfoKeyBuffer( plr.edict() );
-		state.desiredModel = p_PlayerInfo.GetValue( "model" ).ToLowercase();
 		g_player_states[steamId] = state;
 	}
 	return cast<PlayerState@>( g_player_states[steamId] );
@@ -169,9 +169,6 @@ HookReturnCode ClientJoin( CBasePlayer@ plr ) {
 			}
 		}
 	}
-	
-	PlayerState@ state = getPlayerState(plr);
-	state.wasEverNotified = false;
 
 	return HOOK_CONTINUE;
 }
@@ -242,7 +239,6 @@ array<PlayerModelInfo> get_visible_players(CBasePlayer@ looker, int&out totalPol
 	
 	array<PlayerModelInfo> pvsPlayers;
 	
-	
 	//edict_t@ edt = @g_EngineFuncs.EntitiesInPVS(@g_EntityFuncs.Instance(0).edict()); // useless, see HLEnhanced comment
 	
 	// TODO: this doesn't work on maps with no PVS info or just one area (always assume players are visible then)
@@ -271,21 +267,11 @@ array<PlayerModelInfo> get_visible_players(CBasePlayer@ looker, int&out totalPol
 				bool isVisible = DotProduct(delta, g_Engine.v_forward) > 0.0;
 				
 				if (plr.entindex() != looker.entindex() && isVisible) {
-					PlayerState@ state = getPlayerState(plr);
-					
 					PlayerModelInfo info;
 					@info.plr = @plr;
-					info.desiredModel = state.desiredModel;
+					info.desiredModel = getDesiredModel(plr);
 					
-					int polyCount = 0;
-					
-					if (g_model_list.exists(state.desiredModel)) {
-						polyCount = g_model_list.get(state.desiredModel).polys;
-					} else {
-						polyCount = unknownModelPolys; // assume the worst, to encourage adding models to the server
-						//println("UNKNOWN MODEL: " + state.desiredModel);
-					}
-					
+					int polyCount = getModelPolyCount(info.desiredModel);
 					info.desiredPolys = polyCount;
 					totalPolys += polyCount;
 					
@@ -295,110 +281,106 @@ array<PlayerModelInfo> get_visible_players(CBasePlayer@ looker, int&out totalPol
 		}
 	}
 	
+	// assume chasecam is on
+	PlayerModelInfo lookerInfo;
+	@lookerInfo.plr = @looker;
+	lookerInfo.desiredModel = getDesiredModel(looker);
+	lookerInfo.desiredPolys = getModelPolyCount(lookerInfo.desiredModel);
+	pvsPlayers.insertLast(lookerInfo);
+	totalPolys += lookerInfo.desiredPolys;
+	totalPlayers++;
+	
 	return pvsPlayers;
 }
 
-void reset_models() {
+void reset_models(CBasePlayer@ forPlayer=null) {
 	for ( int i = 1; i <= g_Engine.maxClients; i++ )
 	{
 		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
 		if (plr is null or !plr.IsConnected())
 			continue;
 		
-		KeyValueBuffer@ pKeyvalues = g_EngineFuncs.GetInfoKeyBuffer( plr.edict() );
-		PlayerState@ state = getPlayerState(plr);
-		state.lod = LOD_HD;
-		pKeyvalues.SetValue("model", state.desiredModel);
+		if (forPlayer !is null) {
+			UserInfo(plr).send(forPlayer);
+		} else {
+			UserInfo(plr).broadcast();
+		}
+	}
+	
+	if (forPlayer !is null) {
+		g_replacers[forPlayer.entindex()].resize(0);
+		g_replacers[forPlayer.entindex()].resize(33);
+	} else {
+		g_replacers.resize(0);
+		g_replacers.resize(33);
+		
+		for ( int i = 1; i <= g_Engine.maxClients; i++ ) {
+			g_replacers[i].resize(33);
+		}
 	}
 }
 
-void reduce_model_polys() {
-	for ( int i = 1; i <= g_Engine.maxClients; i++ )
-	{
-		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
-		if (plr is null or !plr.IsConnected())
-			continue;
-		
-		KeyValueBuffer@ pKeyvalues = g_EngineFuncs.GetInfoKeyBuffer( plr.edict() );
-		PlayerState@ state = getPlayerState(plr);
-		
-		if (g_player_lod[i] != LOD_HD) {
-			g_replaced_players.insertLast("" + plr.pev.netname + (g_player_lod[i] == LOD_SD ? " (SD)" : " (LD)"));
-		}
-		
-		// player manually changing their model?
-		string currentModel = pKeyvalues.GetValue( "model" ).ToLowercase();
-		string targetModel = state.desiredModel;
-		if (g_player_lod[i] != LOD_HD) {
-			ModelInfo info = g_model_list.get(state.desiredModel);
-			targetModel = g_player_lod[i] == LOD_SD ? info.replacement_sd : info.replacement_ld;
-		}
-		
-		if (currentModel != targetModel && g_player_lod[i] == state.lod) {
-			state.desiredModel = currentModel;
-			state.lod = LOD_HD; // force replacement now
-		}
-		
-		if (g_player_lod[i] != LOD_HD) {
-			if (state.lod == g_player_lod[i]) {
-				//println("Already replaced " + plr.pev.netname);				
-				continue;
-			}
-			
-			if (!state.wasEverNotified) {
-				state.wasEverNotified = true;
-				g_PlayerFuncs.SayText(plr, beingReplacedMessage);
-			}
-			
-			ModelInfo info = g_model_list.get(state.desiredModel);
-			string replaceModel = g_player_lod[i] == LOD_SD ? info.replacement_sd : info.replacement_ld;
-			state.lod = g_player_lod[i];
-			pKeyvalues.SetValue("model", replaceModel);
-			
-			//println("Replaced model for " + plr.pev.netname + " is " + replaceModel + " DESIRED IS " + state.desiredModel);
-		}
-		else {
-			// restore the desired model
-			if (state.lod == LOD_HD) {
-				//println("Already restored " + plr.pev.netname);
-				continue;
-			}
-			
-			if (state.desiredModel.Length() == 0) {
-				continue;
-			}
-			
-			//println("Restore model " + state.desiredModel + " for " + plr.pev.netname);
-			
-			pKeyvalues.SetValue("model", state.desiredModel);
-			state.lod = LOD_HD;
-		}
+string getLodModel(CBasePlayer@ plr, int lod) {
+	string desiredModel = getDesiredModel(plr);
+	
+	if (lod == LOD_HD) {
+		return desiredModel;
 	}
+	
+	if (g_model_list.exists(desiredModel)) {
+		ModelInfo info = g_model_list.get(desiredModel);
+		return lod == LOD_SD ? info.replacement_sd : info.replacement_ld;
+	}
+	
+	return defaultLowpolyModel;
+}
+
+string getDesiredModel(CBasePlayer@ plr) {
+	KeyValueBuffer@ p_PlayerInfo = g_EngineFuncs.GetInfoKeyBuffer( plr.edict() );
+	return p_PlayerInfo.GetValue( "model" ).ToLowercase();
+}
+
+int getModelPolyCount(string model) {					
+	if (g_model_list.exists(model)) {
+		return g_model_list.get(model).polys;
+	}
+	
+	return unknownModelPolys; // assume the worst, to encourage adding models to the server
 }
 
 // flags models near this player which should be replaced with low poly models
-void flag_nearby_highpoly_models(CBasePlayer@ looker) {	
+void replace_highpoly_models(CBasePlayer@ looker) {	
 	PlayerState@ state = getPlayerState(looker);
 	
-	if (state.prefersHighPoly) {
+	if (state.prefersHighPoly and not state.debug) {
 		return; // player doesn't care if there are too many high-poly models on screen
 	}
 
 	int totalPolys = 0;
 	int totalPlayers = 0;
 	array<PlayerModelInfo> pvsPlayers = get_visible_players(looker, totalPolys, totalPlayers);
-	
 	int maxAllowedPolys = cvar_max_player_polys.GetInt();
-	
 	int reducedPolys = totalPolys;
+	array<int> oldLod(33);
+	array<int> lodPolys(pvsPlayers.size());
 	
-	if (pvsPlayers.size() > 0 && totalPolys > maxAllowedPolys) {
+	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {
+		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
+		if (plr is null or !plr.IsConnected())
+			continue;
+	
+		oldLod[i] = g_replacers[looker.entindex()][plr.entindex()];
+		g_replacers[looker.entindex()][plr.entindex()] = LOD_HD;
+	}
+	
+	if (pvsPlayers.size() > 0 && totalPolys > maxAllowedPolys && !state.prefersHighPoly) {
 		
 		// replace highest polycount models first
 		pvsPlayers.sort(function(a,b) { return a.desiredPolys > b.desiredPolys; });
 		
 		for (int pass = 0; pass < 2 && reducedPolys > maxAllowedPolys; pass++) {
 			bool sd_model_replacement_only = pass == 0;
+			// TODO: sort by SD model polys after the high poly pass
 		
 			for (uint i = 0; i < pvsPlayers.size() && reducedPolys > maxAllowedPolys; i++) {
 				CBaseEntity@ plr = pvsPlayers[i].plr;
@@ -426,14 +408,39 @@ void flag_nearby_highpoly_models(CBasePlayer@ looker) {
 					}
 				}
 				
-				int requestedLod = sd_model_replacement_only ? LOD_SD : LOD_LD;
-				g_player_lod[plr.entindex()] = requestedLod;
-				g_replacers[looker.entindex()][plr.entindex()] = requestedLod;
+				int newLod = sd_model_replacement_only ? LOD_SD : LOD_LD;
+				int lastPassLod = g_replacers[looker.entindex()][plr.entindex()];
+				g_replacers[looker.entindex()][plr.entindex()] = newLod;
 				
 				reducedPolys -= (pvsPlayers[i].desiredPolys - replacePolys);
+				if (lastPassLod != LOD_HD) {
+					// poly reduction doesn't stack. Undo the reduction from the previous pass.
+					reducedPolys += (pvsPlayers[i].desiredPolys - lodPolys[i]);
+				}
+				lodPolys[i] = replacePolys;
 			}
 		}
-	}	
+	}
+	
+	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {
+		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
+		if (plr is null or !plr.IsConnected())
+			continue;
+			
+		int currentLod = g_replacers[looker.entindex()][plr.entindex()];
+		
+		if (oldLod[i] != currentLod) {
+			string model = getLodModel(plr, currentLod);
+			
+			UserInfo info(plr);
+			info.model = model;
+			info.send(looker);
+		}
+		
+		if (currentLod != LOD_HD) {
+			
+		}
+	}
 	
 	state.debugPolys = totalPolys;
 	state.debugReducedPolys = reducedPolys;
@@ -459,38 +466,35 @@ void debug(CBasePlayer@ plr) {
 		info += "\nVisible polys: " + formatInteger(state.debugPolys);
 		if (state.debugPolys != state.debugReducedPolys)
 			info += " (reduced to " + formatInteger(state.debugReducedPolys) + ")";
-		
 		info += "\nReplaced: ";
-		if (g_replaced_players.size() > 0) {
-			for (uint k = 0; k < g_replaced_players.size(); k++) {
-				info += g_replaced_players[k];
-				if (k < g_replaced_players.size()-1) {
-					info += ", ";
-				}
+		
+		int eidx = plr.entindex();
+		bool anyReplaced = false;
+		
+		for (int k = 1; k <= g_Engine.maxClients; k++) {
+			int lod = g_replacers[eidx][k];
+			if (lod == LOD_HD) {
+				continue;
 			}
-		} else {
-			info += "none";
+			
+			CBasePlayer@ target = g_PlayerFuncs.FindPlayerByIndex(k);
+			if (target is null or !target.IsConnected())
+				continue;
+
+			Vector lookerPos = plr.pev.origin + plr.pev.view_ofs;
+			Vector targetPos = target.pev.origin;
+			Color color = lod == LOD_SD ? YELLOW : RED;
+			te_beampoints(lookerPos, targetPos, "sprites/laserbeam.spr", 0, 0, 1, 2, 0, color, 32, MSG_ONE_UNRELIABLE, plr.edict());
+		
+			if (anyReplaced) {
+				info += ", ";
+			}
+			info += getDesiredModel(target) + " " + (lod == LOD_SD ? "(SD)" : "(LD)");
+			anyReplaced = true;
 		}
 		
-		for (int i = 1; i <= g_Engine.maxClients; i++) {
-			CBasePlayer@ looker = g_PlayerFuncs.FindPlayerByIndex(i);
-			if (looker is null or !looker.IsConnected())
-				continue;
-			
-			for (int k = 1; k <= g_Engine.maxClients; k++) {
-				if (g_replacers[i][k] == LOD_HD) {
-					continue;
-				}
-				
-				CBasePlayer@ target = g_PlayerFuncs.FindPlayerByIndex(k);
-				if (target is null or !target.IsConnected())
-					continue;
-
-				Vector lookerPos = looker.pev.origin + looker.pev.view_ofs;
-				Vector targetPos = target.pev.origin;
-				Color color = g_replacers[i][k] == LOD_SD ? YELLOW : RED;
-				te_beampoints(lookerPos, targetPos, "sprites/laserbeam.spr", 0, 0, 1, 2, 0, color, 32, MSG_ONE_UNRELIABLE, plr.edict());
-			}
+		if (!anyReplaced) {
+			info += "none";
 		}
 		
 		if (info.Length() > 300) {
@@ -502,35 +506,13 @@ void debug(CBasePlayer@ plr) {
 }
 
 void update_models() {
-	if (!g_enabled) {
-		return;
-	}
-	
-	g_replaced_players.resize(0);
-	g_replacers.resize(0);
-	g_replacers.resize(33);
-	g_player_lod.resize(0);
-	g_player_lod.resize(33);
-	
-	for ( int i = 1; i <= g_Engine.maxClients; i++ )
-	{
+	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {		
 		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
+		
 		if (plr is null or !plr.IsConnected())
 			continue;
 		
-		g_replacers[i].resize(33);
-		
-		flag_nearby_highpoly_models(plr);
-	}
-	
-	reduce_model_polys();
-	
-	for ( int i = 1; i <= g_Engine.maxClients; i++ )
-	{
-		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
-		if (plr is null or !plr.IsConnected())
-			continue;
-		
+		replace_highpoly_models(plr);	
 		debug(plr);
 	}
 }
@@ -570,7 +552,8 @@ void list_model_polys(CBasePlayer@ plr) {
 		PlayerState@ pstate = getPlayerState(lplr);
 		
 		string pname = lplr.pev.netname;
-		string modelName = pstate.desiredModel;
+		string desiredModel = getDesiredModel(lplr);
+		string modelName = desiredModel;
 		
 		// client crashes if printing this character
 		if (int(modelName.Find("%n")) != -1) {
@@ -594,7 +577,7 @@ void list_model_polys(CBasePlayer@ plr) {
 		info.playerName = pname;
 		info.modelName = modelName;
 		info.preference = pstate.prefersHighPoly ? "HD" : "LD";
-		info.polys = g_model_list.exists(pstate.desiredModel) ? int(g_model_list.get(pstate.desiredModel).polys) : -1;
+		info.polys = g_model_list.exists(desiredModel) ? int(g_model_list.get(desiredModel).polys) : -1;
 		
 		info.polyString = "??? (not installed)";
 		if (info.polys != -1) {
@@ -649,25 +632,14 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 		}
 		else if (args[0] == ".hipoly") {
 			if (args.ArgC() > 1) {
-				if (isAdmin && args[1] == 'on') {
-					g_enabled = true;
-					g_PlayerFuncs.SayTextAll(plr, "High-poly player model replacement is now enabled. " + moreInfoMessage + "\n");
-				}
-				else if (isAdmin && args[1] == 'off') {
-					reset_models();
-					g_enabled = false;
-					g_PlayerFuncs.SayTextAll(plr, "High-poly player model replacement is now disabled.\n");
+				state.prefersHighPoly = atoi(args[1]) != 0;
+				if (state.prefersHighPoly) {
+					reset_models(plr);
+					g_PlayerFuncs.SayText(plr, "Preference set to high-poly player models (worsens FPS).\n");
 				}
 				else {
-					state.prefersHighPoly = atoi(args[1]) != 0;
-					if (state.prefersHighPoly) {
-						g_PlayerFuncs.SayText(plr, "Preference set to high-poly player models (worsens FPS).\n");
-					}
-					else {
-						g_PlayerFuncs.SayText(plr, "Preference set to low-poly player models (improves FPS).\n");
-					}
+					g_PlayerFuncs.SayText(plr, "Preference set to low-poly player models (improves FPS).\n");
 				}
-				
 			} else {
 				if (!isConsoleCommand) {
 					if (state.prefersHighPoly) {
@@ -679,15 +651,13 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 					
 					g_PlayerFuncs.SayText(plr, 'Type ".hipoly" in console for more info\n');
 				}
-				
+				string desiredModel = getDesiredModel(plr);
 				
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '------------------------------Too Many Polys Plugin------------------------------\n\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'This plugin replaces high-poly player models with low-poly versions to improve FPS.\n');
 				
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nA model is replaced only if other players in the same area can see it and if \n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'at least one of those players is seeing too many player model polygons. Models are\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'replaced in order from most to least polygons, until the visible polygon count is\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'below the limit for any given player.\n');
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nModels are replaced in order from most to least polygons, until the visible \n');
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'polygon count is below a limit that you set (WIP).\n');
 				
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nLooking for models with a low poly count? Try here:\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'https://wootguy.github.io/scmodels/\n');
@@ -712,29 +682,26 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nStatus:\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Your preference is for ' + (state.prefersHighPoly ? "high-poly" : "low-poly") +' models.\n');
 				
-				ModelInfo info = g_model_list.get(state.desiredModel);
+				ModelInfo info = g_model_list.get(desiredModel);
 				
-				if (g_model_list.exists(state.desiredModel)) {
+				if (g_model_list.exists(desiredModel)) {
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Your model\'s detail levels:\n');
-					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        HD Model: ' + state.desiredModel + ' (' + formatInteger(info.polys) + ' polys)\n');
+					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        HD Model: ' + desiredModel + ' (' + formatInteger(info.polys) + ' polys)\n');
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        SD Model: ' + info.replacement_sd + ' (' + formatInteger(g_model_list.get(info.replacement_sd).polys) + ' polys)\n');
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        LD Model: ' + info.replacement_ld + ' (' + formatInteger(g_model_list.get(info.replacement_ld).polys) + ' polys)\n');
 				}
 				else {
-					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Your player model (' + state.desiredModel + ') is not installed on this server.\n');
+					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Your player model (' + desiredModel + ') is not installed on this server.\n');
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        Because of this, your player model is assumed to have an insanely high\n');
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        poly count (' + formatInteger(unknownModelPolys) +').\n');
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Your model\'s detail levels:\n');
-					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        HD Model: ' + state.desiredModel + ' (' + formatInteger(unknownModelPolys) + ' polys)\n');
+					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        HD Model: ' + desiredModel + ' (' + formatInteger(unknownModelPolys) + ' polys)\n');
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        SD Model: ' + defaultLowpolyModel + ' (' + formatInteger(defaultLowpolyModelPolys) + ' polys)\n');
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        LD Model: ' + defaultLowpolyModel + ' (' + formatInteger(defaultLowpolyModelPolys) + ' polys)\n');
 				}
 				int perPlayerLimit = cvar_max_player_polys.GetInt() / g_Engine.maxClients;
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    The visible polygon limit on this server is ' 
 					+ formatInteger(cvar_max_player_polys.GetInt()) + ' (' + formatInteger(perPlayerLimit) + ' per player).\n');
-				
-				if (!g_enabled)
-					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nThe plugin is currently DISABLED.\n');
 				
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\n---------------------------------------------------------------------------------\n\n');
 				
