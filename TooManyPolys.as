@@ -3,21 +3,17 @@
 #include "util"
 
 // TODO:
-// - allow manually setting a secondary model
 // - performance improvements?
-// - update ghosts plugin to use new info_target
+// - replace ghost models somehow
 // - angles dont work while dead
 // - special characters in names mess up .listpoly table alignment
-// - sort models again after doing the sd pass
-// - use ld version for sd version if no sd version (kmd_kanna)
 // - replace knuckles models with 2d
-// - opt in to pref instead of out, and unknown model polys to helmet
+// - re-apply replacement when changing a userinfo setting
 
 // can't reproduce:
 // - vis checks don't work sometimes:
 //   - only on map start? Not until everyone connected with non-0 ping?
 //   - only the spawn area? (hunger, rc_labyrinth)
-//   - no vis (sc_mision73)
 
 void print(string text) { g_Game.AlertMessage( at_console, text); }
 void println(string text) { print(text + "\n"); }
@@ -41,6 +37,7 @@ enum LEVEL_OF_DETAIL
 
 class PlayerState {
 	bool prefersHighPoly = true; // true if player would rather have horrible FPS than see low poly models
+	int polyLimit = cvar_default_poly_limit.GetInt();
 	
 	bool debug;
 	int debugPolys;
@@ -52,7 +49,7 @@ class PlayerState {
 string model_list_path = "scripts/plugins/TooManyPolys/models.txt";
 const int hashmapBucketCount = 4096;
 HashMapModelInfo g_model_list(hashmapBucketCount);
-CCVar@ cvar_max_player_polys;
+CCVar@ cvar_default_poly_limit;
 dictionary g_player_states;
 
 const string defaultLowpolyModel = "player-10up";
@@ -70,7 +67,7 @@ void PluginInit() {
 	
 	g_Hooks.RegisterHook( Hooks::Player::ClientSay, @ClientSay );
 	
-	@cvar_max_player_polys = CCVar("max_player_polys", 64000, "max player visble polys", ConCommandFlag::AdminOnly);
+	@cvar_default_poly_limit = CCVar("default_poly_limit", 32000, "max player visble polys", ConCommandFlag::AdminOnly);
 	
 	g_Hooks.RegisterHook( Hooks::Player::ClientPutInServer, @ClientJoin );
 	
@@ -229,6 +226,7 @@ class PlayerModelInfo {
 	CBaseEntity@ plr;
 	string desiredModel;
 	int desiredPolys;
+	int replacePolys;
 	
 	PlayerModelInfo() {}
 }
@@ -373,10 +371,9 @@ void replace_highpoly_models(CBasePlayer@ looker) {
 	int totalPolys = 0;
 	int totalPlayers = 0;
 	array<PlayerModelInfo> pvsPlayers = get_visible_players(looker, totalPolys, totalPlayers);
-	int maxAllowedPolys = cvar_max_player_polys.GetInt();
+	int maxAllowedPolys = state.polyLimit;
 	int reducedPolys = totalPolys;
 	array<int> oldLod(33);
-	array<int> lodPolys(pvsPlayers.size());
 	
 	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {
 		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
@@ -433,9 +430,9 @@ void replace_highpoly_models(CBasePlayer@ looker) {
 				reducedPolys -= (pvsPlayers[i].desiredPolys - replacePolys);
 				if (lastPassLod != LOD_HD) {
 					// poly reduction doesn't stack. Undo the reduction from the previous pass.
-					reducedPolys += (pvsPlayers[i].desiredPolys - lodPolys[i]);
+					reducedPolys += (pvsPlayers[i].desiredPolys - pvsPlayers[i].replacePolys);
 				}
-				lodPolys[i] = replacePolys;
+				pvsPlayers[i].replacePolys = replacePolys;
 				pvsPlayers[i].desiredPolys = replacePolys;
 			}
 		}
@@ -625,10 +622,11 @@ void list_model_polys(CBasePlayer@ plr) {
 			mlist[i].playerName + ' ' + mlist[i].modelName + ' ' + mlist[i].polyString + ' ' + mlist[i].preference + '\n');
 	}
 	
-	int perPlayerLimit = cvar_max_player_polys.GetInt() / g_Engine.maxClients;
+	PlayerState@ state = getPlayerState(plr);
+	int perPlayerLimit = state.polyLimit / g_Engine.maxClients;
 	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '---------------------------------------------------------------------------------\n\n');
 	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Total polys      : ' + formatInteger(total_polys) + '\n');
-	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Max visible polys: ' + formatInteger(cvar_max_player_polys.GetInt()) + '\n');
+	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Max visible polys: ' + formatInteger(state.polyLimit) + '\n');
 	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Safe poly count  : ' + formatInteger(perPlayerLimit) + '    (models below this limit will never be replaced)\n\n');
 }
 
@@ -644,6 +642,11 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 		else if (args[0] == ".debugpoly") {
 			state.debug = !state.debug;
 			g_PlayerFuncs.SayText(plr, 'Poly count debug mode ' + (state.debug ? "ENABLED" : "DISABLED") + '\n');
+		}
+		else if (args[0] == ".limitpoly") {
+			state.polyLimit = Math.max(int(atof(args[1])*1000), defaultLowpolyModelPolys*g_Engine.maxClients);
+			state.polyLimit = Math.min(state.polyLimit, 1000000);
+			g_PlayerFuncs.SayText(plr, 'Poly limit set to ' + formatInteger(state.polyLimit) + '\n');
 		}
 		else if (args[0] == ".hipoly") {
 			if (args.ArgC() > 1) {
@@ -678,21 +681,16 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'https://wootguy.github.io/scmodels/\n');
 				
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nCommands:\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".hipoly [0/1]" to set your model poly preference.\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        0 = Prefer low-poly models (improves FPS).\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        1 = Prefer high-poly player models (worsens FPS).\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '            Note: Players in your area without this preference will still cause\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '            models to be replaced.\n');
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".hipoly [0/1]" to toggle model replacement on/off.\n');
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".limitpoly X" to change the polygon limit (X = poly count, in thousands).\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".listpoly" to list each player\'s model and polygon count.\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".debugpoly" to show:\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        - How many player model polys the server thinks you can see.\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        - List of players who are having their models replaced\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        - Lasers indicating who is causing a model to be replaced\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '              Yellow = SD model requested by player\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '              Red    = LD model requested by player\n');
-				
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nAdmins only:\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".hipoly [on/off]" to enable/disable the plugin\n');
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        - Lasers showing which models are replaced\n');
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '              No line = HD model (not replaced)\n');
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '              Yellow  = SD model\n');
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '              Red     = LD model\n');
 				
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nStatus:\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Your preference is for ' + (state.prefersHighPoly ? "high-poly" : "low-poly") +' models.\n');
@@ -714,9 +712,9 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        SD Model: ' + defaultLowpolyModel + ' (' + formatInteger(defaultLowpolyModelPolys) + ' polys)\n');
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        LD Model: ' + defaultLowpolyModel + ' (' + formatInteger(defaultLowpolyModelPolys) + ' polys)\n');
 				}
-				int perPlayerLimit = cvar_max_player_polys.GetInt() / g_Engine.maxClients;
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    The visible polygon limit on this server is ' 
-					+ formatInteger(cvar_max_player_polys.GetInt()) + ' (' + formatInteger(perPlayerLimit) + ' per player).\n');
+				int perPlayerLimit = state.polyLimit / g_Engine.maxClients;
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Your visible polygon limit is set to ' 
+					+ formatInteger(state.polyLimit) + ' (' + formatInteger(perPlayerLimit) + ' per player).\n');
 				
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\n---------------------------------------------------------------------------------\n\n');
 				
@@ -738,9 +736,10 @@ HookReturnCode ClientSay( SayParameters@ pParams ) {
 	return HOOK_CONTINUE;
 }
 
-CClientCommand _hipoly("hipoly", "Too Many Polys commands", @consoleCmd );
-CClientCommand _listpoly("listpoly", "Too Many Polys polygon list", @consoleCmd );
-CClientCommand _debugpoly("debugpoly", "Too Many Polys polygon list", @consoleCmd );
+CClientCommand _hipoly("hipoly", "Too Many Polys command", @consoleCmd );
+CClientCommand _listpoly("listpoly", "Too Many Polys command", @consoleCmd );
+CClientCommand _debugpoly("debugpoly", "Too Many Polys command", @consoleCmd );
+CClientCommand _polylimit("limitpoly", "Too Many Polys command", @consoleCmd );
 
 void consoleCmd( const CCommand@ args ) {
 	CBasePlayer@ plr = g_ConCommandSystem.GetCurrentPlayer();
