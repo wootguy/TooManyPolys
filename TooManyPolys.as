@@ -28,7 +28,7 @@ class ModelInfo {
 	string replacement_ld = defaultLowpolyModel; // lowest-def replacement, should be a 2D model or the default replacement
 	
 	bool hasSdModel() {
-		return replacement_sd != replacement_ld;
+		return replacement_sd != replacement_ld && replacement_sd != defaultLowpolyModel;
 	}
 }
 
@@ -70,7 +70,7 @@ void PluginInit() {
 	
 	g_Hooks.RegisterHook( Hooks::Player::ClientSay, @ClientSay );
 	
-	@cvar_max_player_polys = CCVar("max_player_polys", 4000, "max player visble polys", ConCommandFlag::AdminOnly);
+	@cvar_max_player_polys = CCVar("max_player_polys", 64000, "max player visble polys", ConCommandFlag::AdminOnly);
 	
 	g_Hooks.RegisterHook( Hooks::Player::ClientPutInServer, @ClientJoin );
 	
@@ -233,19 +233,33 @@ class PlayerModelInfo {
 	PlayerModelInfo() {}
 }
 
+bool isPlayerVisible(Vector lookerOrigin, Vector lookDirection, CBasePlayer@ plr) {
+	if ((plr.pev.effects & EF_NODRAW) == 0 && (plr.pev.rendermode == 0 || plr.pev.renderamt > 0)) {
+		Vector delta = (plr.pev.origin - lookerOrigin).Normalize();
+		
+		// check if player is in fov of the looker (can't actually check the fov of a player so this assumes 180 degrees)
+		bool isVisible = DotProduct(delta, g_Engine.v_forward) > 0.0;
+		
+		if (isVisible) {
+			return true;
+		}
+	}
+	
+	return false;
+}
+
 array<PlayerModelInfo> get_visible_players(CBasePlayer@ looker, int&out totalPolys, int&out totalPlayers) {	
 	Math.MakeVectors( looker.pev.v_angle );
 	Vector lookerOrigin = looker.pev.origin - g_Engine.v_forward * 128; // assume chasecam is on
 	
-	array<PlayerModelInfo> pvsPlayers;
+	array<PlayerModelInfo> pvsPlayerInfos;
 	
 	//edict_t@ edt = @g_EngineFuncs.EntitiesInPVS(@g_EntityFuncs.Instance(0).edict()); // useless, see HLEnhanced comment
 	
 	// TODO: this doesn't work on maps with no PVS info or just one area (always assume players are visible then)
 	edict_t@ edt = @g_EngineFuncs.EntitiesInPVS(@looker.edict());
 	
-	totalPolys = 0;
-	totalPlayers = 0;
+	array<CBasePlayer@> pvsPlayers;
 	
 	while (edt !is null)
 	{
@@ -258,39 +272,39 @@ array<PlayerModelInfo> get_visible_players(CBasePlayer@ looker, int&out totalPol
 		CBasePlayer@ plr = cast<CBasePlayer@>(ent);
 			
 		if (plr !is null && plr.IsConnected()) {
-			totalPlayers++;
-			
-			if ((ent.pev.effects & EF_NODRAW) == 0 && (ent.pev.rendermode == 0 || ent.pev.renderamt > 0)) {
-				Vector delta = (plr.pev.origin - lookerOrigin).Normalize();
-				
-				// check if player is in fov of the looker (can't actually check the fov of a player so this assumes 180 degrees)
-				bool isVisible = DotProduct(delta, g_Engine.v_forward) > 0.0;
-				
-				if (plr.entindex() != looker.entindex() && isVisible) {
-					PlayerModelInfo info;
-					@info.plr = @plr;
-					info.desiredModel = getDesiredModel(plr);
-					
-					int polyCount = getModelPolyCount(info.desiredModel);
-					info.desiredPolys = polyCount;
-					totalPolys += polyCount;
-					
-					pvsPlayers.insertLast(info);
-				}
-			}
+			pvsPlayers.insertLast(plr);
 		}
 	}
 	
-	// assume chasecam is on
-	PlayerModelInfo lookerInfo;
-	@lookerInfo.plr = @looker;
-	lookerInfo.desiredModel = getDesiredModel(looker);
-	lookerInfo.desiredPolys = getModelPolyCount(lookerInfo.desiredModel);
-	pvsPlayers.insertLast(lookerInfo);
-	totalPolys += lookerInfo.desiredPolys;
-	totalPlayers++;
+	if (pvsPlayers.size() == 0) {
+		// map has no VIS info, so assume everyone is in the PVS
+		for ( int i = 1; i <= g_Engine.maxClients; i++ ) {		
+			CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
+			
+			if (plr is null or !plr.IsConnected())
+				continue;
+			
+			pvsPlayers.insertLast(plr);
+		}
+	}
 	
-	return pvsPlayers;
+	totalPolys = 0;
+	for (uint i = 0; i < pvsPlayers.size(); i++) {
+		CBasePlayer@ plr = pvsPlayers[i];
+		
+		if (isPlayerVisible(lookerOrigin, g_Engine.v_forward, plr)) {
+			PlayerModelInfo info;
+			@info.plr = @plr;
+			info.desiredModel = getDesiredModel(plr);
+			info.desiredPolys = getModelPolyCount(info.desiredModel);
+			pvsPlayerInfos.insertLast(info);
+			totalPolys += info.desiredPolys;
+		}
+	}
+	
+	totalPlayers = pvsPlayers.size();
+	
+	return pvsPlayerInfos;
 }
 
 void reset_models(CBasePlayer@ forPlayer=null) {
@@ -380,7 +394,11 @@ void replace_highpoly_models(CBasePlayer@ looker) {
 		
 		for (int pass = 0; pass < 2 && reducedPolys > maxAllowedPolys; pass++) {
 			bool sd_model_replacement_only = pass == 0;
-			// TODO: sort by SD model polys after the high poly pass
+			
+			if (pass == 1) {
+				// sort again now that HD models have been replaced with SD models
+				pvsPlayers.sort(function(a,b) { return a.desiredPolys > b.desiredPolys; });
+			}
 		
 			for (uint i = 0; i < pvsPlayers.size() && reducedPolys > maxAllowedPolys; i++) {
 				CBaseEntity@ plr = pvsPlayers[i].plr;
@@ -418,6 +436,7 @@ void replace_highpoly_models(CBasePlayer@ looker) {
 					reducedPolys += (pvsPlayers[i].desiredPolys - lodPolys[i]);
 				}
 				lodPolys[i] = replacePolys;
+				pvsPlayers[i].desiredPolys = replacePolys;
 			}
 		}
 	}
@@ -435,10 +454,6 @@ void replace_highpoly_models(CBasePlayer@ looker) {
 			UserInfo info(plr);
 			info.model = model;
 			info.send(looker);
-		}
-		
-		if (currentLod != LOD_HD) {
-			
 		}
 	}
 	
