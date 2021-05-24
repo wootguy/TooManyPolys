@@ -60,12 +60,14 @@ const string moreInfoMessage = "Type '.hipoly' in console for more info.";
 
 array<string> g_ModelList; // list of models to precache
 array<array<int>> g_replacers; // player idx -> current LOD seen for other players
+array<string> g_cachedUserInfo; // used to detect when user info has changed, which undos model replacement
 
 void PluginInit() {
 	g_Module.ScriptInfo.SetAuthor( "w00tguy" );
 	g_Module.ScriptInfo.SetContactInfo( "asdf" );
 	
 	g_Hooks.RegisterHook( Hooks::Player::ClientSay, @ClientSay );
+	g_Hooks.RegisterHook( Hooks::Player::PlayerEnteredObserver, @PlayerEnteredObserver );
 	
 	@cvar_default_poly_limit = CCVar("default_poly_limit", 32000, "max player visble polys", ConCommandFlag::AdminOnly);
 	
@@ -75,8 +77,8 @@ void PluginInit() {
 	
 	g_Scheduler.SetInterval("update_models", 0.1, -1);
 	
-	g_replacers.resize(0);
 	g_replacers.resize(33);
+	g_cachedUserInfo.resize(33);
 	
 	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {
 		g_replacers[i].resize(33);
@@ -170,6 +172,24 @@ HookReturnCode ClientJoin( CBasePlayer@ plr ) {
 	return HOOK_CONTINUE;
 }
 
+HookReturnCode PlayerEnteredObserver( CBasePlayer@ plr ) {
+	CBaseEntity@ ent = null;
+	do {
+		@ent = g_EntityFuncs.FindEntityByClassname(ent, "deadplayer"); 
+		if (ent !is null) {
+			CustomKeyvalues@ pCustom = ent.GetCustomKeyvalues();
+			CustomKeyvalue ownerKey( pCustom.GetKeyvalue( "$i_hipoly_owner" ) );
+			
+			if (!ownerKey.Exists()) {
+				pCustom.SetKeyvalue("$i_hipoly_owner", plr.entindex());
+				println("Set owner for corpse! " + ent.pev.classname);
+			}
+		}
+	} while (ent !is null);
+	
+	return HOOK_CONTINUE;
+}
+
 void load_model_list() {
 	g_model_list.clear(hashmapBucketCount);
 	
@@ -224,6 +244,7 @@ void load_model_list() {
 
 class PlayerModelInfo {
 	CBaseEntity@ plr;
+	CBasePlayer@ owner; // if plr is a dead body, then this is the owning player
 	string desiredModel;
 	int desiredPolys;
 	int replacePolys;
@@ -231,7 +252,7 @@ class PlayerModelInfo {
 	PlayerModelInfo() {}
 }
 
-bool isPlayerVisible(Vector lookerOrigin, Vector lookDirection, CBasePlayer@ plr) {
+bool isPlayerVisible(Vector lookerOrigin, Vector lookDirection, CBaseEntity@ plr) {
 	if ((plr.pev.effects & EF_NODRAW) == 0 && (plr.pev.rendermode == 0 || plr.pev.renderamt > 0)) {
 		Vector delta = (plr.pev.origin - lookerOrigin).Normalize();
 		
@@ -251,13 +272,11 @@ array<PlayerModelInfo> get_visible_players(CBasePlayer@ looker, int&out totalPol
 	Vector lookerOrigin = looker.pev.origin - g_Engine.v_forward * 128; // assume chasecam is on
 	
 	array<PlayerModelInfo> pvsPlayerInfos;
+	array<CBaseEntity@> pvsPlayers;
+	bool canSeeAnyPlayers = false;
 	
 	//edict_t@ edt = @g_EngineFuncs.EntitiesInPVS(@g_EntityFuncs.Instance(0).edict()); // useless, see HLEnhanced comment
-	
-	// TODO: this doesn't work on maps with no PVS info or just one area (always assume players are visible then)
 	edict_t@ edt = @g_EngineFuncs.EntitiesInPVS(@looker.edict());
-	
-	array<CBasePlayer@> pvsPlayers;
 	
 	while (edt !is null)
 	{
@@ -268,18 +287,22 @@ array<PlayerModelInfo> get_visible_players(CBasePlayer@ looker, int&out totalPol
 		@edt = @ent.pev.chain;
 		
 		CBasePlayer@ plr = cast<CBasePlayer@>(ent);
-			
-		if (plr !is null && plr.IsConnected()) {
-			pvsPlayers.insertLast(plr);
+		
+		if (plr !is null && plr.IsConnected() && !plr.GetObserver().IsObserver()) {
+			canSeeAnyPlayers = true;
+			pvsPlayers.insertLast(ent);
+		} else if (string(ent.pev.classname) == "deadplayer") {
+			pvsPlayers.insertLast(ent);
 		}
 	}
 	
-	if (pvsPlayers.size() == 0) {
+	if (!canSeeAnyPlayers) {
 		// map has no VIS info, so assume everyone is in the PVS
+		// for reason corpses will still be added to the pvs list properly, so no need to add those too
 		for ( int i = 1; i <= g_Engine.maxClients; i++ ) {		
 			CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
 			
-			if (plr is null or !plr.IsConnected())
+			if (plr is null or !plr.IsConnected() or plr.GetObserver().IsObserver())
 				continue;
 			
 			pvsPlayers.insertLast(plr);
@@ -288,13 +311,35 @@ array<PlayerModelInfo> get_visible_players(CBasePlayer@ looker, int&out totalPol
 	
 	totalPolys = 0;
 	for (uint i = 0; i < pvsPlayers.size(); i++) {
-		CBasePlayer@ plr = pvsPlayers[i];
+		CBaseEntity@ plr = pvsPlayers[i];
 		
 		if (isPlayerVisible(lookerOrigin, g_Engine.v_forward, plr)) {
 			PlayerModelInfo info;
+			CBaseEntity@ modelPlr = plr;
+		
+			// if this is a body, find who owns it
+			if (string(plr.pev.classname) == "deadplayer") {
+				CustomKeyvalues@ pCustom = plr.GetCustomKeyvalues();
+				CustomKeyvalue ownerKey( pCustom.GetKeyvalue( "$i_hipoly_owner" ) );
+				bool hasOwner = false;
+				
+				if (ownerKey.Exists()) {
+					CBasePlayer@ owner = g_PlayerFuncs.FindPlayerByIndex(ownerKey.GetInteger());
+					
+					if (owner !is null and owner.IsConnected()) {
+						@info.owner = @owner;
+						@modelPlr = @owner;
+						hasOwner = true;
+					}
+				}
+				if (!hasOwner) {
+					println("Failed to find owner for corpse.");
+				}
+			}
+		
 			@info.plr = @plr;
-			info.desiredModel = getDesiredModel(plr);
-			info.desiredPolys = getModelPolyCount(plr, info.desiredModel);
+			info.desiredModel = getDesiredModel(modelPlr);
+			info.desiredPolys = getModelPolyCount(modelPlr, info.desiredModel);
 			pvsPlayerInfos.insertLast(info);
 			totalPolys += info.desiredPolys;
 		}
@@ -347,12 +392,12 @@ string getLodModel(CBasePlayer@ plr, int lod) {
 	return defaultLowpolyModel;
 }
 
-string getDesiredModel(CBasePlayer@ plr) {
+string getDesiredModel(CBaseEntity@ plr) {
 	KeyValueBuffer@ p_PlayerInfo = g_EngineFuncs.GetInfoKeyBuffer( plr.edict() );
 	return p_PlayerInfo.GetValue( "model" ).ToLowercase();
 }
 
-int getModelPolyCount(CBasePlayer@ plr, string model) {			
+int getModelPolyCount(CBaseEntity@ plr, string model) {			
 	int multiplier = plr.pev.renderfx == kRenderFxGlowShell ? 2 : 1;
 		
 	if (g_model_list.exists(model)) {
@@ -363,7 +408,7 @@ int getModelPolyCount(CBasePlayer@ plr, string model) {
 }
 
 // flags models near this player which should be replaced with low poly models
-void replace_highpoly_models(CBasePlayer@ looker) {	
+void replace_highpoly_models(CBasePlayer@ looker, array<bool>@ forceUpdateClients) {	
 	PlayerState@ state = getPlayerState(looker);
 	
 	if (state.prefersHighPoly and not state.debug) {
@@ -401,6 +446,16 @@ void replace_highpoly_models(CBasePlayer@ looker) {
 		
 			for (uint i = 0; i < pvsPlayers.size() && reducedPolys > maxAllowedPolys; i++) {
 				CBaseEntity@ plr = pvsPlayers[i].plr;
+				int eidx = plr.entindex();
+				
+				if (plr.pev.classname == "deadplayer") {
+					if (pvsPlayers[i].owner !is null) {
+						eidx = pvsPlayers[i].owner.entindex();
+					} else {
+						println("Can't replace model for corpse with no owner");
+						continue;
+					}
+				}
 				
 				int multiplier = plr.pev.renderfx == kRenderFxGlowShell ? 2 : 1;
 				int replacePolys = defaultLowpolyModelPolys * multiplier;
@@ -427,8 +482,8 @@ void replace_highpoly_models(CBasePlayer@ looker) {
 				}
 				
 				int newLod = sd_model_replacement_only ? LOD_SD : LOD_LD;
-				int lastPassLod = g_replacers[looker.entindex()][plr.entindex()];
-				g_replacers[looker.entindex()][plr.entindex()] = newLod;
+				int lastPassLod = g_replacers[looker.entindex()][eidx];
+				g_replacers[looker.entindex()][eidx] = newLod;
 				
 				reducedPolys -= (pvsPlayers[i].desiredPolys - replacePolys);
 				if (lastPassLod != LOD_HD) {
@@ -448,7 +503,9 @@ void replace_highpoly_models(CBasePlayer@ looker) {
 			
 		int currentLod = g_replacers[looker.entindex()][plr.entindex()];
 		
-		if (oldLod[i] != currentLod) {
+		if (oldLod[i] != currentLod or (forceUpdateClients[plr.entindex()] && currentLod != LOD_HD)) {
+			if (forceUpdateClients[plr.entindex()]) {
+			}
 			string model = getLodModel(plr, currentLod);
 			
 			UserInfo info(plr);
@@ -498,6 +555,22 @@ void debug(CBasePlayer@ plr) {
 
 			Vector lookerPos = plr.pev.origin + plr.pev.view_ofs;
 			Vector targetPos = target.pev.origin;
+			
+			if (target.GetObserver().IsObserver()) {
+				CBaseEntity@ ent = null;
+				do {
+					@ent = g_EntityFuncs.FindEntityByClassname(ent, "deadplayer"); 
+					if (ent !is null) {
+						CustomKeyvalues@ pCustom = ent.GetCustomKeyvalues();
+						CustomKeyvalue ownerKey( pCustom.GetKeyvalue( "$i_hipoly_owner" ) );
+						
+						if (ownerKey.Exists() && ownerKey.GetInteger() == target.entindex()) {
+							targetPos = ent.pev.origin - Vector(0, 0, 30);
+						}
+					}
+				} while (ent !is null);
+			}
+			
 			Color color = lod == LOD_SD ? YELLOW : RED;
 			te_beampoints(lookerPos, targetPos, "sprites/laserbeam.spr", 0, 0, 1, 2, 0, color, 32, MSG_ONE_UNRELIABLE, plr.edict());
 		
@@ -521,13 +594,30 @@ void debug(CBasePlayer@ plr) {
 }
 
 void update_models() {
+	array<bool> forceUpdateClients(33);
+	
+	// check if any players updated settings which would undo per-client model replacements
+	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {
+		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
+		
+		if (plr is null or !plr.IsConnected())
+			continue;
+			
+		string userInfo = UserInfo(plr).infoString();
+		
+		if (userInfo != g_cachedUserInfo[plr.entindex()]) {
+			g_cachedUserInfo[plr.entindex()] = userInfo;
+			forceUpdateClients[i] = true;
+		}
+	}
+
 	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {		
 		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
 		
 		if (plr is null or !plr.IsConnected())
 			continue;
 		
-		replace_highpoly_models(plr);	
+		replace_highpoly_models(plr, forceUpdateClients);	
 		debug(plr);
 	}
 }
@@ -638,7 +728,7 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 	bool isAdmin = g_PlayerFuncs.AdminLevel(plr) >= ADMIN_YES;
 	
 	if ( args.ArgC() > 0 )
-	{				
+	{
 		if (args[0] == ".listpoly") {
 			list_model_polys(plr);
 		}
