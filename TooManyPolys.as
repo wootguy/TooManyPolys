@@ -294,7 +294,7 @@ array<PlayerModelInfo> get_visible_players(CBasePlayer@ looker, int&out totalPol
 			PlayerModelInfo info;
 			@info.plr = @plr;
 			info.desiredModel = getDesiredModel(plr);
-			info.desiredPolys = getModelPolyCount(info.desiredModel);
+			info.desiredPolys = getModelPolyCount(plr, info.desiredModel);
 			pvsPlayerInfos.insertLast(info);
 			totalPolys += info.desiredPolys;
 		}
@@ -352,12 +352,14 @@ string getDesiredModel(CBasePlayer@ plr) {
 	return p_PlayerInfo.GetValue( "model" ).ToLowercase();
 }
 
-int getModelPolyCount(string model) {					
+int getModelPolyCount(CBasePlayer@ plr, string model) {			
+	int multiplier = plr.pev.renderfx == kRenderFxGlowShell ? 2 : 1;
+		
 	if (g_model_list.exists(model)) {
-		return g_model_list.get(model).polys;
+		return g_model_list.get(model).polys * multiplier;
 	}
 	
-	return unknownModelPolys; // assume the worst, to encourage adding models to the server
+	return unknownModelPolys * multiplier; // assume the worst, to encourage adding models to the server
 }
 
 // flags models near this player which should be replaced with low poly models
@@ -400,7 +402,8 @@ void replace_highpoly_models(CBasePlayer@ looker) {
 			for (uint i = 0; i < pvsPlayers.size() && reducedPolys > maxAllowedPolys; i++) {
 				CBaseEntity@ plr = pvsPlayers[i].plr;
 				
-				int replacePolys = defaultLowpolyModelPolys;
+				int multiplier = plr.pev.renderfx == kRenderFxGlowShell ? 2 : 1;
+				int replacePolys = defaultLowpolyModelPolys * multiplier;
 				
 				if (g_model_list.exists(pvsPlayers[i].desiredModel)) {
 					ModelInfo info = g_model_list.get(pvsPlayers[i].desiredModel);
@@ -412,7 +415,7 @@ void replace_highpoly_models(CBasePlayer@ looker) {
 					string replace_model = sd_model_replacement_only ? info.replacement_sd : info.replacement_ld;
 					ModelInfo replaceInfo = g_model_list.get(replace_model);
 					
-					replacePolys = replaceInfo.polys;
+					replacePolys = replaceInfo.polys * multiplier;
 					if (pvsPlayers[i].desiredPolys < replacePolys) {
 						println("Replacement model is higher poly! (" + pvsPlayers[i].desiredModel + " -> " + replace_model);
 					}
