@@ -86,7 +86,7 @@ void PluginInit() {
 	g_Hooks.RegisterHook( Hooks::Player::PlayerEnteredObserver, @PlayerEnteredObserver );
 	g_Hooks.RegisterHook( Hooks::Game::MapChange, @MapChange );
 	
-	@cvar_default_poly_limit = CCVar("default_poly_limit", 32000, "max player visble polys", ConCommandFlag::AdminOnly);
+	@cvar_default_poly_limit = CCVar("default_poly_limit", 16000, "max player visble polys", ConCommandFlag::AdminOnly);
 	
 	load_model_list();
 	
@@ -225,6 +225,8 @@ class PlayerModelInfo {
 	string desiredModel;
 	int desiredPolys;
 	int replacePolys;
+	
+	Replacement currentReplacement;
 	
 	PlayerModelInfo() {}
 }
@@ -430,12 +432,11 @@ void replace_highpoly_models(CBasePlayer@ looker, array<bool>@ g_forceUpdateClie
 	int maxAllowedPolys = state.polyLimit;
 	int reducedPolys = totalPolys;
 	array<Replacement> oldReplacements;
+	int lookeridx = looker.entindex();
 	
-	for (uint i = 0; i < g_replacements[looker.entindex()].size(); i++) {
-		oldReplacements.insertLast(g_replacements[looker.entindex()][i]);
+	for (uint i = 0; i < g_replacements[lookeridx].size(); i++) {
+		oldReplacements.insertLast(g_replacements[lookeridx][i]);
 	}
-	g_replacements[looker.entindex()].resize(0);
-	g_replacements[looker.entindex()].resize(pvsPlayers.size());
 	
 	// Pick an LOD for ents in the PVS
 	if (pvsPlayers.size() > 0 && totalPolys > maxAllowedPolys && !state.prefersHighPoly) {
@@ -489,10 +490,10 @@ void replace_highpoly_models(CBasePlayer@ looker, array<bool>@ g_forceUpdateClie
 				}
 				
 				int newLod = sd_model_replacement_only ? LOD_SD : LOD_LD;
-				int lastPassLod = g_replacements[looker.entindex()][i].lod;
-				g_replacements[looker.entindex()][i].lod = newLod;
-				g_replacements[looker.entindex()][i].h_ent = EHandle(ent);
-				g_replacements[looker.entindex()][i].h_owner = EHandle(owner);
+				int lastPassLod = pvsPlayers[i].currentReplacement.lod;
+				pvsPlayers[i].currentReplacement.lod = newLod;
+				pvsPlayers[i].currentReplacement.h_ent = EHandle(ent);
+				pvsPlayers[i].currentReplacement.h_owner = EHandle(owner);
 				
 				reducedPolys -= (pvsPlayers[i].desiredPolys - replacePolys);
 				if (lastPassLod != LOD_HD) {
@@ -505,13 +506,19 @@ void replace_highpoly_models(CBasePlayer@ looker, array<bool>@ g_forceUpdateClie
 		}
 	}
 	
+	g_replacements[lookeridx].resize(0);
+	g_replacements[lookeridx].resize(pvsPlayers.size());
+	for (uint i = 0; i < pvsPlayers.size(); i++) {
+		g_replacements[lookeridx][i] = pvsPlayers[i].currentReplacement;
+	}
+	
 	// update LOD for ents in the PVS
-	for (uint i = 0; i < g_replacements[looker.entindex()].size(); i++) {
-		Replacement@ replacement = g_replacements[looker.entindex()][i];
+	for (uint i = 0; i < g_replacements[lookeridx].size(); i++) {
+		Replacement@ replacement = g_replacements[lookeridx][i];
 		CBaseEntity@ replaceEnt = replacement.h_ent;
 		CBaseEntity@ replaceOwner = replacement.h_owner;
 		
-		if (!replacement.h_ent.IsValid()) {
+		if (replaceEnt is null) {
 			continue;
 		}
 		
@@ -535,11 +542,11 @@ void replace_highpoly_models(CBasePlayer@ looker, array<bool>@ g_forceUpdateClie
 		bool playerModelUpdated = g_forceUpdateClients[replaceOwner.entindex()];
 		
 		if (oldLod != currentLod or playerModelUpdated) {
-			println("UPDATE " + replaceEnt.pev.classname + " " + replacement.h_owner.GetEntity().pev.netname + " " + currentLod);
+			//println("UPDATE " + replaceEnt.pev.classname + " " + replaceOwner.pev.netname + " " + currentLod);
 			
 			if (replaceEnt.IsPlayer() or replaceEnt.pev.classname == "deadplayer") {
 				// player and deadplayer entity models are replaced via UserInfo messages
-				CBasePlayer@ plr = cast<CBasePlayer@>(replacement.h_owner.GetEntity());
+				CBasePlayer@ plr = cast<CBasePlayer@>(replaceOwner);
 				string model = getLodModel(plr, currentLod);
 				UserInfo info(plr);
 				info.model = model;
@@ -556,17 +563,18 @@ void replace_highpoly_models(CBasePlayer@ looker, array<bool>@ g_forceUpdateClie
 	for (uint i = 0; i < oldReplacements.size(); i++) {
 		Replacement@ replacement = oldReplacements[i];
 		CBaseEntity@ replaceEnt = replacement.h_ent;
+		CBaseEntity@ replaceOwner = replacement.h_owner;
 		
-		if (!replacement.h_ent.IsValid()) {
+		if (replaceEnt is null) {
 			continue;
 		}
 		
 		if (oldReplacements[i].lod != -1) {
-			println("REVERT " + replaceEnt.pev.classname + " " + replacement.h_owner.GetEntity().pev.netname);
+			//println("REVERT " + replaceEnt.pev.classname + " " + replaceOwner.pev.netname);
 			
 			if (replaceEnt.IsPlayer() or replaceEnt.pev.classname == "deadplayer") {
 				// player and deadplayer entity models are replaced via UserInfo messages
-				CBasePlayer@ plr = cast<CBasePlayer@>(replacement.h_owner.GetEntity());
+				CBasePlayer@ plr = cast<CBasePlayer@>(replaceOwner);
 				string model = getLodModel(plr, LOD_HD);
 				UserInfo info(plr);
 				info.model = model;
@@ -774,9 +782,9 @@ void list_model_polys(CBasePlayer@ plr) {
 	PlayerState@ state = getPlayerState(plr);
 	int perPlayerLimit = state.polyLimit / g_Engine.maxClients;
 	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '---------------------------------------------------------------------------------\n\n');
-	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Total polys      : ' + formatInteger(total_polys) + '\n');
-	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Max visible polys: ' + formatInteger(state.polyLimit) + '\n');
-	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Safe poly count  : ' + formatInteger(perPlayerLimit) + '    (models below this limit will never be replaced)\n\n');
+	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Total polys      = ' + formatInteger(total_polys) + '\n');
+	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Your poly limit  = ' + formatInteger(state.polyLimit) + '\n');
+	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Safe model polys = ' + formatInteger(perPlayerLimit) + '    (models below this limit will never be replaced)\n\n');
 }
 
 bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=false) {
@@ -798,7 +806,7 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 			float arg = Math.min(atof(args[1]), 1000);
 			state.polyLimit = Math.max(int(arg*1000), defaultLowpolyModelPolys*g_Engine.maxClients);
 			if (!state.prefersHighPoly) {
-				state.prefersHighPoly = true;
+				state.prefersHighPoly = false;
 			}
 			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCENTER, "Max player polys: " + formatInteger(state.polyLimit) + "\n");
 			return true;
