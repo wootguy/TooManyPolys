@@ -13,6 +13,7 @@
 // - poly count wrong when ghost model not precached
 // - constantly update ghost renders instead of adding special logic?
 // - show if model is precached in .listpoly
+// - try to undo some medium-LOD pass replacements if it was necessary to do an LD pass.
 
 // can't reproduce:
 // - vis checks don't work sometimes:
@@ -50,7 +51,7 @@ class PlayerState {
 	int debugTotalPlayers;
 }
 
-string model_list_path = "scripts/plugins/TooManyPolys/models.txt";
+string g_model_list_path = "scripts/plugins/TooManyPolys/models.txt";
 const int hashmapBucketCount = 4096;
 HashMapModelInfo g_model_list(hashmapBucketCount);
 CCVar@ cvar_default_poly_limit;
@@ -170,10 +171,10 @@ HookReturnCode PlayerEnteredObserver( CBasePlayer@ plr ) {
 void load_model_list() {
 	g_model_list.clear(hashmapBucketCount);
 	
-	File@ f = g_FileSystem.OpenFile( model_list_path, OpenFile::READ );
+	File@ f = g_FileSystem.OpenFile( g_model_list_path, OpenFile::READ );
 	if (f is null or !f.IsOpen())
 	{
-		println("TooManyPolys: Failed to open " + model_list_path);
+		println("TooManyPolys: Failed to open " + g_model_list_path);
 		return;
 	}
 	
@@ -181,24 +182,13 @@ void load_model_list() {
 	string line;
 	while( !f.EOFReached() )
 	{
-		f.ReadLine(line);
-		line.Trim();
-		line.Trim("\t");
-		if (line.Length() == 0 or line.Find("//") == 0)
-			continue;
-		
+		f.ReadLine(line);		
 		array<string> parts = line.Split("/");
 		if (parts.size() < 4) {
 			println("TooManyPolys: Failed to parse model info: " + line);
 			continue;
 		}
-		for (int i = 0; i < 4; i++) {
-			parts[i].Trim();
-			
-			if (parts[i][0] == ' ') { // because Trim doesn't actually work
-				parts[i] = '';
-			}
-		}
+
 		string model_name = parts[0];
 		int poly_count = atoi(parts[1]);
 		string sd_model = parts[2];
@@ -214,7 +204,7 @@ void load_model_list() {
 		modelCount++;
 	}
 	
-	println("TooManyPolys: Loaded " + modelCount + " models from " + model_list_path);
+	println("TooManyPolys: Loaded " + modelCount + " models from " + g_model_list_path);
 	
 	g_model_list.stats();
 }
