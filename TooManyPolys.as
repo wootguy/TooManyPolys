@@ -13,7 +13,6 @@
 // - poly count wrong when ghost model not precached
 // - constantly update ghost renders instead of adding special logic?
 // - show if model is precached in .listpoly
-// - try to undo some medium-LOD pass replacements if it was necessary to do an LD pass.
 
 // can't reproduce:
 // - vis checks don't work sometimes:
@@ -262,6 +261,53 @@ class PlayerModelInfo {
 	Replacement currentReplacement;
 	
 	PlayerModelInfo() {}
+	
+	CBaseEntity@ getOwner() {
+		if (ent.pev.classname == "deadplayer" or ent.pev.classname == "cycler") {
+			if (owner !is null) {
+				return @owner;
+			} else {
+				return null;
+			}
+		} else {
+			return @ent; // players own their "player" entity
+		}
+	}
+	
+	// this entity's model has an SD version
+	bool canReplaceSd() {		
+		if (g_model_list.exists(desiredModel)) {
+			ModelInfo info = g_model_list.get(desiredModel);
+			return info.hasSdModel();			
+		}
+		
+		return false;
+	}
+	
+	// returns the polys for the given LOD on the entity
+	// the default low poly model is used if no known replacement exists
+	int getReplacementPolys(bool standardDefNotLowDef) {
+		int multiplier = ent.pev.renderfx == kRenderFxGlowShell ? 2 : 1;
+		int replacePolys = defaultLowpolyModelPolys * multiplier;
+		
+		if (g_model_list.exists(desiredModel)) {
+			ModelInfo info = g_model_list.get(desiredModel);
+		
+			string replace_model = standardDefNotLowDef ? info.replacement_sd : info.replacement_ld;
+			ModelInfo replaceInfo = g_model_list.get(replace_model);
+			
+			replacePolys = replaceInfo.polys * multiplier;
+			if (desiredPolys < replacePolys) {
+				println("Replacement model is higher poly! (" + desiredModel + " -> " + replace_model);
+			}
+		}
+		
+		return replacePolys;
+	}
+	
+	bool hasOwner() {
+		return getOwner() !is null;
+	}
 }
 
 bool isPlayerVisible(Vector lookerOrigin, Vector lookDirection, CBaseEntity@ plr) {
@@ -366,6 +412,9 @@ array<PlayerModelInfo> get_visible_players(CBasePlayer@ looker, int&out totalPol
 			@info.ent = @plr;
 			info.desiredModel = getDesiredModel(modelPlr);
 			info.desiredPolys = getModelPolyCount(modelPlr, info.desiredModel);
+			info.replacePolys = info.desiredPolys;
+			info.currentReplacement.h_ent = EHandle(info.ent);
+			info.currentReplacement.h_owner = EHandle(info.getOwner());	
 			pvsPlayerInfos.insertLast(info);
 			totalPolys += info.desiredPolys;
 		}
@@ -474,68 +523,56 @@ void replace_highpoly_models(CBasePlayer@ looker, array<bool>@ g_forceUpdateClie
 	// Pick an LOD for ents in the PVS
 	if (pvsPlayers.size() > 0 && totalPolys > maxAllowedPolys && !state.prefersHighPoly) {
 		
-		// replace highest polycount models first
+		// SD pass. Do replacements from HD -> SD, but only if the model has an SD replacement.
+		// Sort by poly count to replace highest polycount models first
 		pvsPlayers.sort(function(a,b) { return a.desiredPolys > b.desiredPolys; });
-		
-		for (int pass = 0; pass < 2 && reducedPolys > maxAllowedPolys; pass++) {
-			bool sd_model_replacement_only = pass == 0;
+		for (uint i = 0; i < pvsPlayers.size() && reducedPolys > maxAllowedPolys; i++) {		
+			if (!pvsPlayers[i].hasOwner() or !pvsPlayers[i].canReplaceSd()) {
+				continue;
+			}
 			
-			if (pass == 1) {
-				// sort again now that HD models have been replaced with SD models
-				pvsPlayers.sort(function(a,b) { return a.desiredPolys > b.desiredPolys; });
-			}
+			pvsPlayers[i].currentReplacement.lod = LOD_SD;
+			pvsPlayers[i].replacePolys = pvsPlayers[i].getReplacementPolys(true);
+			
+			reducedPolys -= pvsPlayers[i].desiredPolys - pvsPlayers[i].replacePolys;
+		}
 		
-			for (uint i = 0; i < pvsPlayers.size() && reducedPolys > maxAllowedPolys; i++) {
-				CBaseEntity@ ent = pvsPlayers[i].ent;
-				CBaseEntity@ owner = pvsPlayers[i].ent;
-				
-				if (ent.pev.classname == "deadplayer" or ent.pev.classname == "cycler") {
-					if (pvsPlayers[i].owner !is null) {
-						@owner = @pvsPlayers[i].owner;
-					} else {
-						println("Can't replace model for corpse/ghost with no owner");
-						continue;
-					}
-				}
-				
-				int multiplier = ent.pev.renderfx == kRenderFxGlowShell ? 2 : 1;
-				int replacePolys = defaultLowpolyModelPolys * multiplier;
-				
-				if (g_model_list.exists(pvsPlayers[i].desiredModel)) {
-					ModelInfo info = g_model_list.get(pvsPlayers[i].desiredModel);
-				
-					if (sd_model_replacement_only && !info.hasSdModel()) {
-						continue; // first pass only forces SD models on each player
-					}
-				
-					string replace_model = sd_model_replacement_only ? info.replacement_sd : info.replacement_ld;
-					ModelInfo replaceInfo = g_model_list.get(replace_model);
-					
-					replacePolys = replaceInfo.polys * multiplier;
-					if (pvsPlayers[i].desiredPolys < replacePolys) {
-						println("Replacement model is higher poly! (" + pvsPlayers[i].desiredModel + " -> " + replace_model);
-					}
-					
-				} else {
-					if (sd_model_replacement_only) {
-						continue; // missing models have no SD varient
-					}
-				}
-				
-				int newLod = sd_model_replacement_only ? LOD_SD : LOD_LD;
-				int lastPassLod = pvsPlayers[i].currentReplacement.lod;
-				pvsPlayers[i].currentReplacement.lod = newLod;
-				pvsPlayers[i].currentReplacement.h_ent = EHandle(ent);
-				pvsPlayers[i].currentReplacement.h_owner = EHandle(owner);
-				
-				reducedPolys -= (pvsPlayers[i].desiredPolys - replacePolys);
-				if (lastPassLod != LOD_HD) {
-					// poly reduction doesn't stack. Undo the reduction from the previous pass.
-					reducedPolys += (pvsPlayers[i].desiredPolys - pvsPlayers[i].replacePolys);
-				}
-				pvsPlayers[i].replacePolys = replacePolys;
-				pvsPlayers[i].desiredPolys = replacePolys;
+		// LD pass. Aggressively set to LD even if the model doesn't have an LD replacement.
+		// Sort by polys again now that the SD pass has changed poly counts for each player
+		pvsPlayers.sort(function(a,b) { return a.replacePolys > b.replacePolys; });
+		for (uint i = 0; i < pvsPlayers.size() && reducedPolys > maxAllowedPolys; i++) {
+			if (!pvsPlayers[i].hasOwner()) {
+				continue;
 			}
+			
+			// poly reduction doesn't stack. Undo the reduction from the SD pass.
+			reducedPolys += pvsPlayers[i].desiredPolys - pvsPlayers[i].replacePolys; // 0 if no SD replacement was made
+			
+			pvsPlayers[i].currentReplacement.lod = LOD_LD;
+			pvsPlayers[i].replacePolys = pvsPlayers[i].getReplacementPolys(false);
+			
+			// now apply the LD poly reduction
+			reducedPolys -= pvsPlayers[i].desiredPolys - pvsPlayers[i].replacePolys;
+		}
+		
+		// SD undo pass. Try to undo some SD model replacements, if an LD replacement freed up enough polys
+		// Undo replacements for the lowest poly models first
+		pvsPlayers.sort(function(a,b) { return a.replacePolys < b.replacePolys; });
+		for (uint i = 0; i < pvsPlayers.size() && reducedPolys < maxAllowedPolys; i++) {
+			if (!pvsPlayers[i].hasOwner() or pvsPlayers[i].currentReplacement.lod != LOD_SD) {
+				continue;
+			}
+			
+			int polysToAdd = pvsPlayers[i].desiredPolys - pvsPlayers[i].replacePolys;
+			
+			if (reducedPolys + polysToAdd > maxAllowedPolys) {
+				continue;
+			}
+
+			pvsPlayers[i].currentReplacement.lod = LOD_HD;
+			pvsPlayers[i].replacePolys = pvsPlayers[i].desiredPolys;
+			
+			reducedPolys += polysToAdd;
 		}
 	}
 	
