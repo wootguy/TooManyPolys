@@ -52,6 +52,7 @@ class PlayerState {
 }
 
 string g_model_list_path = "scripts/plugins/TooManyPolys/models.txt";
+string g_alias_list_path = "scripts/plugins/TooManyPolys/aliases.txt";
 const int hashmapBucketCount = 4096;
 HashMapModelInfo g_model_list(hashmapBucketCount);
 CCVar@ cvar_default_poly_limit;
@@ -182,13 +183,13 @@ void load_model_list() {
 	string line;
 	while( !f.EOFReached() )
 	{
-		f.ReadLine(line);		
-		array<string> parts = line.Split("/");
-		if (parts.size() < 4) {
-			println("TooManyPolys: Failed to parse model info: " + line);
+		f.ReadLine(line);
+		
+		if (line.Length() == 0) {
 			continue;
 		}
-
+		
+		array<string> parts = line.Split("/");
 		string model_name = parts[0];
 		int poly_count = atoi(parts[1]);
 		string sd_model = parts[2];
@@ -205,6 +206,48 @@ void load_model_list() {
 	}
 	
 	println("TooManyPolys: Loaded " + modelCount + " models from " + g_model_list_path);
+	
+	load_aliases();
+}
+
+// redirect old versions and aliases to the latest version of the model
+void load_aliases() {	
+	File@ f = g_FileSystem.OpenFile( g_alias_list_path, OpenFile::READ );
+	if (f is null or !f.IsOpen())
+	{
+		println("TooManyPolys: Failed to open " + g_alias_list_path);
+		return;
+	}
+	
+	int aliasCount = 0;
+	string line;
+	while( !f.EOFReached() )
+	{
+		f.ReadLine(line);		
+		
+		if (line.Length() == 0) {
+			continue;
+		}
+		
+		array<string> parts = line.Split("/");
+
+		string latest_model_name = parts[0];
+		//println("TRY " + latest_model_name);
+		
+		if (!g_model_list.exists(latest_model_name)) {
+			//println("TooManyPolys: Alias info references unknown model: " + line);
+			continue;
+		}
+		
+		ModelInfo latest_info = g_model_list.get(latest_model_name);
+		
+		for (uint i = 1; i < parts.size(); i++) {
+			g_model_list.put(parts[i], latest_info);
+			aliasCount++;
+		}
+	}
+	
+	println("TooManyPolys: Duplicated " + aliasCount + " ModelInfos from " + g_alias_list_path);
 	
 	g_model_list.stats();
 }
