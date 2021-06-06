@@ -241,8 +241,10 @@ void load_aliases() {
 		ModelInfo latest_info = g_model_list.get(latest_model_name);
 		
 		for (uint i = 1; i < parts.size(); i++) {
-			g_model_list.put(parts[i], latest_info);
-			aliasCount++;
+			if (!g_model_list.exists(parts[i])) {
+				g_model_list.put(parts[i], latest_info);
+				aliasCount++;
+			}
 		}
 	}
 	
@@ -298,7 +300,7 @@ class PlayerModelInfo {
 			
 			replacePolys = replaceInfo.polys * multiplier;
 			if (desiredPolys < replacePolys) {
-				println("Replacement model is higher poly! (" + desiredModel + " -> " + replace_model);
+				println("Replacement model is higher poly! (" + desiredModel + "(" + desiredPolys + ") -> " + replace_model + " (" + replacePolys + ")");
 			}
 		}
 		
