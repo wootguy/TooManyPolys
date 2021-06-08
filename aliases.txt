@@ -874,8 +874,8 @@ krauser_grunt_v2/krauser_grunt
 krauser_gruntf_v2/krauser_gruntf
 krauser_v2/krauser
 kroenen2_v2/kroenen2
-krotchy/krotchy2/krotchy_v2
 krotchy2/krotchy_v2
+krotchy_v2/krotchy/krotchy2/krotchy_v2
 kumamon_v2/kumamon
 kurumi_tokisaki/dal_kurumi/dar-kurumi/lt_jhonela
 kz_bowsette_v2/kz_bowsette
@@ -884,7 +884,7 @@ kz_megumi_v2/kz_megumin/megumin
 kz_miku_w/gs_miku_@w@
 kz_mikutda_v4/kz_miku/kz_mikutda_v1/kz_mikutda_v1_2/kz_mikutda_v2/kz_mikutda_v2_2/kz_mikutda_v3/kz_mikutda_v3_2/kz_mikutda_v4_2
 kz_moeglados_v2/gs_moeglados_v2
-kz_nerutda_v1/kz_neru/kz_nerutda_v2/kz_neruu
+kz_nerutda_v2/kz_neru/kz_nerutda_v1/kz_neruu
 kz_touhou_momiji/touhou_momiji/touhou_momiji_hd
 ladybug_v2/ladybug
 ladydeath19_v2/ladydeath19

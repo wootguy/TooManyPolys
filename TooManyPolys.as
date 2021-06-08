@@ -13,6 +13,9 @@
 // - poly count wrong when ghost model not precached
 // - constantly update ghost renders instead of adding special logic?
 // - show if model is precached in .listpoly
+// - ghost disappears in third person
+// - precache and force latest model if someone is using an alias or older versions that isnt on the server
+// - command to refresh player models (roman joined with LD model with plugin off)
 
 // can't reproduce:
 // - vis checks don't work sometimes:
@@ -43,7 +46,7 @@ class PlayerState {
 	bool prefersHighPoly = true; // true if player would rather have horrible FPS than see low poly models
 	int polyLimit = cvar_default_poly_limit.GetInt();
 	
-	bool debug;
+	int debug;
 	int debugPolys;
 	int debugReducedPolys;
 	int debugVisiblePlayers;
@@ -87,7 +90,7 @@ void PluginInit() {
 	g_Hooks.RegisterHook( Hooks::Player::PlayerEnteredObserver, @PlayerEnteredObserver );
 	g_Hooks.RegisterHook( Hooks::Game::MapChange, @MapChange );
 	
-	@cvar_default_poly_limit = CCVar("default_poly_limit", 16000, "max player visble polys", ConCommandFlag::AdminOnly);
+	@cvar_default_poly_limit = CCVar("default_poly_limit", 32000, "max player visble polys", ConCommandFlag::AdminOnly);
 	
 	load_model_list();
 	
@@ -506,7 +509,7 @@ int getModelPolyCount(CBaseEntity@ plr, string model) {
 void replace_highpoly_models(CBasePlayer@ looker, array<bool>@ g_forceUpdateClients) {	
 	PlayerState@ state = getPlayerState(looker);
 	
-	if (state.prefersHighPoly and not state.debug) {
+	if (state.prefersHighPoly and state.debug == 0) {
 		return; // player doesn't care if there are too many high-poly models on screen
 	}
 
@@ -668,7 +671,7 @@ void replace_highpoly_models(CBasePlayer@ looker, array<bool>@ g_forceUpdateClie
 void debug(CBasePlayer@ plr) {
 	PlayerState@ state = getPlayerState(plr);
 		
-	if (state.debug) {
+	if (state.debug > 0) {
 		HUDTextParams params;
 		params.effect = 0;
 		params.fadeinTime = 0;
@@ -677,7 +680,7 @@ void debug(CBasePlayer@ plr) {
 		
 		params.x = -1;
 		params.y = 0.99;
-		params.channel = 2;
+		params.channel = 1;
 		
 		string info = "Players models: " + state.debugVisiblePlayers + " / " + state.debugTotalPlayers;
 		info += "\nPolys: " + formatInteger(state.debugPolys);
@@ -699,12 +702,14 @@ void debug(CBasePlayer@ plr) {
 			if (target is null)
 				continue;
 
-			Vector lookerPos = plr.pev.origin + plr.pev.view_ofs - Vector(0,0,5);
-			Vector targetPos = target.pev.origin;
+			if (state.debug > 1) {
+				Vector lookerPos = plr.pev.origin + plr.pev.view_ofs - Vector(0,0,5);
+				Vector targetPos = target.pev.origin;
+				
+				Color color = lod == LOD_SD ? YELLOW : RED;
+				te_beampoints(lookerPos, targetPos, "sprites/laserbeam.spr", 0, 0, 1, 2, 0, color, 32, MSG_ONE_UNRELIABLE, plr.edict());
+			}
 			
-			Color color = lod == LOD_SD ? YELLOW : RED;
-			te_beampoints(lookerPos, targetPos, "sprites/laserbeam.spr", 0, 0, 1, 2, 0, color, 32, MSG_ONE_UNRELIABLE, plr.edict());
-		
 			if (anyReplaced) {
 				info += ", ";
 			}
@@ -870,8 +875,20 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 			return true;
 		}
 		else if (args[0] == ".debugpoly") {
-			state.debug = !state.debug;
-			g_PlayerFuncs.SayText(plr, 'Poly count debug mode ' + (state.debug ? "ENABLED" : "DISABLED") + '\n');
+			if (args.ArgC() > 1) {
+				int arg = atoi(args[1]);
+				state.debug = arg;
+			} else {
+				state.debug = state.debug > 0 ? 0 : 2;
+			}
+			string mode = "DISABLED";
+			if (state.debug == 1) {
+				mode = "ENABLED";
+			} else if (state.debug > 1) {
+				mode = "ENABLED (with lasers)";
+			}
+			
+			g_PlayerFuncs.SayText(plr, 'Poly count debug mode ' + mode + '\n');
 			return true;
 		}
 		else if (args[0] == ".limitpoly") {
@@ -924,7 +941,7 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".hipoly [0/1/toggle]" to toggle model replacement on/off.\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".limitpoly X" to change the polygon limit (X = poly count, in thousands).\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".listpoly" to list each player\'s model and polygon count.\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".debugpoly" to show:\n');
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".debugpoly [0/1/2]" to show:\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        - How many player model polys the server thinks you can see.\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        - List of players who are having their models replaced\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        - Lasers showing which models are replaced\n');
