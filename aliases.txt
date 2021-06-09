@@ -409,6 +409,7 @@ cscz_seal/cs_seal
 cscz_spetsnaz/cscz2_spetsnaz
 cscz_urban/cscz2_urban
 cscz_vip/cscz2_vip
+csneo_typezero_v2/csneo_typezero
 css_terror/css_terro
 cuervosc_v2/cuervosc
 cv-albert wesker/cv-albertwesker
