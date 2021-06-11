@@ -15,7 +15,7 @@
 // - show if model is precached in .listpoly
 // - ghost disappears in third person
 // - precache and force latest model if someone is using an alias or older versions that isnt on the server
-// - command to refresh player models (roman joined with LD model with plugin off)
+// - include hats in poly count calculation
 
 // can't reproduce:
 // - vis checks don't work sometimes:

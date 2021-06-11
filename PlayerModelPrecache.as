@@ -47,8 +47,14 @@ void precachePlayerModels() {
 		}
 
 		if ( playerModelFileExists(model) ) {
-			g_Game.PrecacheModel( "models/player/" + model );
-			g_precachedModels.insertLast(g_ModelList[i]);
+			string path = "models/player/" + model;
+			if (path.Length() > 64) {
+				println("[TooManyPolys] Player model precache failed (65+ chars): " + path + "\n");
+				g_Log.PrintF("[TooManyPolys] Player model precache failed (65+ chars): " + path + "\n");
+			} else {
+				g_Game.PrecacheModel( "models/player/" + model );
+				g_precachedModels.insertLast(g_ModelList[i]);
+			}
 		}
 
 		if ( playerModelFileExists(pic) ) {
