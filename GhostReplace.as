@@ -87,6 +87,7 @@ class GhostReplace {
 		dictionary keys;
 		keys["origin"] = ghostSrc.pev.origin.ToString();
 		keys["targetname"] = string(ghostSrc.pev.targetname) + suffix;
+		keys["noise3"] = string(ghostSrc.pev.noise3);
 		keys["rendermode"] = "" + ghostSrc.pev.rendermode;
 		keys["renderamt"] = "" + ghostSrc.pev.renderamt;
 		keys["spawnflags"] = "" + ghostSrc.pev.spawnflags;
