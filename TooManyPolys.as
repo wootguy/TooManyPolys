@@ -657,7 +657,7 @@ void replace_highpoly_models(CBasePlayer@ looker, array<bool>@ g_forceUpdateClie
 			} else {
 				// ghost models are replaced by creating new LOD copies that are only visible to certain players
 				GhostReplace@ ghostCopy = getGhostCopy(replaceEnt);
-				ghostCopy.setLod(looker, isGhostVisible(replaceEnt, looker) ? LOD_HD : -1);
+				ghostCopy.setLod(looker, LOD_HD);
 			}
 		}
 	}
