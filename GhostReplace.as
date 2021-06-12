@@ -123,6 +123,10 @@ class GhostReplace {
 	void setLod(CBasePlayer@ plr, int lod) {
 		ghostRender.GetEntity().Use(plr, plr, lod == LOD_HD ? USE_OFF : USE_ON);
 		
+		bool renderHd = lod == LOD_HD;
+		bool renderSd = lod == LOD_SD && ghostRenderSD.IsValid();
+		bool renderLd = lod == LOD_LD || (lod == LOD_SD && !ghostRenderSD.IsValid());
+		
 		int visBit = (1 << (plr.entindex() & 31));
 		if (lod != LOD_HD) {
 			// tell the ghosts plugin not to render the ghost for this ghost
@@ -132,11 +136,9 @@ class GhostReplace {
 		}
 		
 		if (ghostRenderSD.IsValid()) {
-			ghostRenderSD.GetEntity().Use(plr, plr, lod == LOD_SD ? USE_OFF : USE_ON);
-			ghostRenderLD.GetEntity().Use(plr, plr, lod == LOD_LD ? USE_OFF : USE_ON);
-		} else {
-			ghostRenderLD.GetEntity().Use(plr, plr, lod == LOD_SD or lod == LOD_LD ? USE_OFF : USE_ON);
+			ghostRenderSD.GetEntity().Use(plr, plr, renderSd ? USE_OFF : USE_ON);
 		}
+		ghostRenderLD.GetEntity().Use(plr, plr, renderLd ? USE_OFF : USE_ON);
 	}
 	
 	bool update() {
