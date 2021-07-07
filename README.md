@@ -1,16 +1,27 @@
 # TooManyPolys
-This plugin replaces high-poly player models with low-poly versions to improve FPS.
-				
-A model is replaced only if other players in the same area can see it and if at least one of those players is seeing too many player model polygons. Models are replaced in order from most to least polygons, until the visible polygon count is below the limit for any given player.
+This plugin replaces high-poly player models with low-poly versions to improve FPS. Models are replaced in order from most to least polygons, until the visible 
+polygon count is below a limit that you set.
 
-Type `.hipoly` in console for commands/help.
+Looking for models with a low poly count? Try here:  
+https://wootguy.github.io/scmodels/
+
+The model database needs to be updated as new models are released. Run `python update.py` occasionally or download `models.txt` and `aliases.txt` from this repo to keep up-to-date.
 
 ## CVars
-```
-as_command hipoly.max_player_polys 64000
-```
-- `hipoly.max_player_polys` sets the maximum player model polygons that a player can view at once. Models are replaced until the number of visible polys is reduced below this limit.
-  - I'm not sure yet what the optimum value for this is. 64k polies is probably too much. Remappable colors also affect performance significantly and that's not considered here yet.
+- `as_command hipoly.default_poly_limit 32000` sets the default polygon limit.
+
+## Commands
+- `.hipoly` displays the help menu.
+- `.hipoly [0/1/toggle]` toggles the polygon limit on/off.
+- `.limitpoly X` changes the polygon limit (X = poly count, in thousands).
+- `.listpoly` lists each player's desired model and polygon count.
+- `.debugpoly [0/1/2]` set debug mode, which shows:
+  - How many player model polys the server thinks you can see.
+  - List of players who are having their models replaced
+  - Lasers showing which models are replaced (mode 2 only)
+    - No line = HD model (not replaced)
+    - Yellow  = SD model
+    - Red     = LD model
 
 ## Installation
 1. Create a symlink from `svencoop_addon/models/player` to `svencoop_addon/scripts/plugins/store/playermodelfolder`
