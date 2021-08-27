@@ -1,3 +1,4 @@
+$/lt_rich
 &uni_rejsyg/_uni_rejsyg
 -agent_onna-_v2/-agent_onna-
 -babygirl-_v2/-babygirl-
@@ -284,6 +285,7 @@ brs_dark_mecha/dark_mechabrs
 brs_kuroi_mato/kuroi_mato
 brs_ssj/mechasjj
 brs_white/mechawrs_v2
+bruno_v2/bruno
 bruvfemale_v2/bruvfemale
 bruvleader_v2/bruvleader
 bt_usarmy_1_v2/bt_usarmy_1
@@ -356,7 +358,7 @@ cleiner_v2/cleiner
 clerk_v2/clerk
 cloud_strife_v2/cloud_strife
 clowncop_v2/clowncop
-cod_looseend4/fp_konikawa2018
+cod_looseend4/fp_konikawa2018/lt_ghost
 codename_natasha_v2/codename_natasha
 cof_police1_v2/cof_police1
 cof_police2_v2/cof_police2
@@ -563,6 +565,7 @@ fp_chupetin/gs_soldiergirl
 fp_eroku2018_v2/fp_eroku2018/shadow_the_hedgehog
 fp_greth2017/fp_greth2018/gs_coach/spp_coach
 fp_meepo/gs_gatiito_general
+fp_mikito/lt_mikito
 fp_nox2018/fp_nox2017
 fp_twi/fp_nahuel
 frankenstein_v2/frankenstein
@@ -595,7 +598,11 @@ ghetpimp_v2/ghetpimp
 ghillie_v2/ghillie/ghillie1
 ghost_git_v2/ghost_git
 ghost_v2/ghost
+gi_ayaka_v3/gi_ayaka/gi_ayaka_v2
+gi_ganyu_hz/gi_ganyu
+gi_ganyu_hz_alt/gi_ganyu_without_the_thing
 gi_hutao/lt_ultron
+gi_keqing/lt_ultron_v2
 gi_klee_v2/gi_klee
 giacomo_2_v2/giacomo_2
 giacomo_v2/giacomo
@@ -620,6 +627,7 @@ gmanhead_v2/gmanhead
 gmansanta_v2/gmansanta
 gmansdayoff_v2/gmansdayoff
 gmansmall_v2/gmansmall
+gokiman/lt_cucaracha
 gordon/cap_gordon
 gordon_floater/midgordon
 gordon_scientist_v2/gordon_scientist
@@ -723,6 +731,7 @@ helmet/cap_helmet
 helmet2_v2/helmet2
 helmetscientist_v2/helmetscientist
 her_royal_botness_v2/her_royal_botness
+hev_drip/lt_alaraco
 hev_mulher_rock/ace_hev/hev_mulher rock
 hevbarnabus_v2/hevbarnabus
 hevbarney/cap_hevbarney
@@ -799,7 +808,7 @@ jason_v2/jason/jason2
 jc_v2/jc
 jester_gibbed_v2/jester_gibbed
 jester_head_v2/jester_head
-jesus_v2/jesus
+jesus_v2/jesus/lt_rolando
 jihadarctic_v2/jihadarctic
 jihaddesert_v2/jihaddesert
 jihadgray_v2/jihadgray
@@ -844,7 +853,7 @@ kattmat_v2/kattmat
 kazextreme2_v2/kazextreme2/kazextreme2_v2
 kc_ikazuchi/lt_ikazuchi
 kc_inazuma/lt_inazuma
-kc_northern_v2/fp_grethelv1/kc_northern/lt_northern
+kc_northern_v2/fp_grethelv1/kc_northern/lt_eternal/lt_northern
 kenneth sullivan/kennethsullivan
 kenneth_sullivan/kennethsullivan
 kermit_costume_v2/kermit_costume
@@ -887,6 +896,7 @@ kz_mikutda_v4/kz_miku/kz_mikutda_v1/kz_mikutda_v1_2/kz_mikutda_v2/kz_mikutda_v2_
 kz_moeglados_v2/gs_moeglados_v2
 kz_nerutda_v2/kz_neru/kz_nerutda_v1/kz_neruu
 kz_touhou_momiji/touhou_momiji/touhou_momiji_hd
+l4d2_ellis/lt_ellis
 ladybug_v2/ladybug
 ladydeath19_v2/ladydeath19
 ladygarden_v2/ladygarden
@@ -1079,8 +1089,8 @@ nekomimiku_f_v2/nekomimiku_f
 nekomimiku_v2/nekomimiku
 nekomimimaid_beta_v2/nekomimimaid_beta
 nekopara_azuki_v2/nekopara_azuki
-nekopara_coconut_kz/nekopara_coconut/nekopara_coconut_v2
-nekopara_ethanol_v4/nekopara_ethanol_v2/nekopara_ethanol_v3
+nekopara_coconut_kz/lt_sergio336_v3/nekopara_coconut/nekopara_coconut_v2
+nekopara_ethanol_v3/nekopara_ethanol_v2
 neon_cow_v2/neon_cow
 nepgear/lt_brenda1
 neptune/lt_brenda2
@@ -1100,7 +1110,7 @@ nohead_v2/nohead
 noire_v2/noire
 not_precached_man_v2/not_precached_man
 nox_gam/gs_succubusgirl/spp_012succubusgirl/spp_succubusgirl
-nr_chen_bike/lt_jhonela1
+nr_chen_bike/lt_catbike/lt_jhonela1
 nr_ran_v2/nr_ran
 ns_soldier_v2/ns_soldier
 ns_specopsblk_v2/ns_specopsblk
@@ -1663,6 +1673,10 @@ touhou_reimu/touhou_reimu_mmd
 touhou_remilia/touhou_remilia_scarlet
 touhou_rumia_v2/touhou_rumia
 touhou_sanae/touhou_kochiya_sanae2
+touhou_sanae_jkc_v2/touhou_sanae_jkc
+touhou_sanae_jkg_v2/touhou_sanae_jkg
+touhou_sanae_jky_v2/touhou_sanae_jky
+touhou_sekibanki_v2/touhou_sekibanki
 touhou_suwako/touhou_swako
 touhou_tenshi/touhou_hinanawi_tenshi
 touhou_tenshi_40k/40k_sisters_tenshi
