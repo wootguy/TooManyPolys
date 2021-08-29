@@ -5706,7 +5706,6 @@ rainbow6/762//
 ram/10783//2d_ram
 ran/36463/touhou_ransyama/2d_touhou_yakumo_ran
 randomgerbil/627//
-ranger1/3084//
 ranger1_v2/3084/ranger9_v2/
 ranger2_v2/3084/ranger9_v2/
 ranger3_v2/3084/ranger9_v2/
@@ -5726,7 +5725,6 @@ raquelinred_v2/861//
 rat_v2/232//
 rata/2200//
 rattyman/5857//2d_dis_ratty
-raus_de/1044/raus_de_v2/
 raus_de_v2/328//
 raus_de_v3/1044/raus_de_v2/
 raven/1405//

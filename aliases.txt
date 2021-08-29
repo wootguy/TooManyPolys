@@ -1249,6 +1249,7 @@ quake_v2/quake
 queenofswords_v2/queenofswords
 quisty/quistis
 ram/ram2
+ranger1_v2/ranger1
 ranger2_v2/ranger2
 ranger3_v2/ranger3
 ranger4_v2/ranger4
