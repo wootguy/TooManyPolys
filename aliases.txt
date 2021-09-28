@@ -127,6 +127,7 @@ airborne04_r_v2/airborne04_r
 airborne04_s_v2/airborne04_s
 airborne04_v2/airborne04
 akatsuki_yuriv2_v2/akatsuki_yuriv2
+al_enterprise_v2/al_enterprise_v1/azur_lane_enterprise/azur_lane_enterprise_v2
 al_git_v2/al_git
 alcatraz_v2/alcatraz/lt_alcatraz
 alex_mercer/lt_alex_mercer
@@ -185,7 +186,6 @@ axis2/axis2_s5
 axis2_s5_v2/axis2_s5
 axissoldier_v2/axissoldier
 axist/axis
-azur_lane_enterprise_v2/azur_lane_enterprise
 babewire_v2/babewire
 baboon_v2/baboon
 babykitkat_v2/babykitkat
@@ -1519,6 +1519,8 @@ sonic_v4/carlos2017/fragpoint/sonic/sonic_s5/sonic_v2/sonic_v3/svenmodelsonic2
 sonicshadow_v2/sonicshadow
 soulcalibur_taki/taki
 southern_belle_v2/southern_belle
+sp_aqua_hatm_v2/sp_aqua_hatm
+sp_aqua_v2/sp_aqua
 spaceghost_v2/spaceghost
 spades_tekker_v2/spades_tekker
 spasgrunt_v2/spasgrunt
@@ -1709,6 +1711,7 @@ uboac_rampage2_p4_v2/uboac_rampage2_p4
 uboashocker/furyouhin
 ufocat_v2/ufocat
 uganda/lt_uganda
+ugandan_knuckles_voice/dawae/lt_uganda/uganda/ugandan_knuckles
 ugg_goose/patokpo
 ultramarine_v2/ultramarine
 ultrasonic_v2/ultrasonic
@@ -1783,6 +1786,7 @@ xinuyasha_v2/xinuyasha
 xkagome_v2/xkagome
 xkikyou_v2/xkikyou
 xsesshomaru_v2/xsesshomaru
+xt-10_mkii/xt-10
 xy_meowsticf_v2/xy_meowsticf
 xy_meowsticm_v2/xy_meowsticm
 yellow_heart/lt_yellow_heart
