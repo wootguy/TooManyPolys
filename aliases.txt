@@ -173,6 +173,7 @@ asian_v2/asian
 aslave_v2/aslave
 assassin_v2/assassin
 astolfo_mazz_old/astolfo_mazz
+astolfo_mera_v2/astolfo_mera_v1
 at&tgirl_v2/at&tgirl
 atf_v2/atf
 atlas/lt_nilev1

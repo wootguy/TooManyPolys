@@ -711,7 +711,7 @@ assassinscreed_ezio/2858//
 assaulthelmet/5242/oghelmet/
 astolfo_mazz/26019/fgo_astolfo-sf2/
 astolfo_mazz_old/26019/fgo_astolfo-sf2/
-astolfo_mera_v1/25098/fgo_astolfo_black/
+astolfo_mera_v2/24485/fgo_astolfo_black/
 aswat-gold/775//
 aswat/775//
 aswat03/775//
@@ -1735,6 +1735,7 @@ cryokeenbeta/605//
 cryokeenbeta2/605//
 cryomarinealpha/1833/marine_v2/
 cryotron1a/1833/marine_v2/
+crypto-137/2739/bananaboy_reg/
 crysis_asiannano/2038//
 crysis_nano1/10313/crysis_asiannano/
 crysis_nano2/10313/crysis_asiannano/
@@ -2206,6 +2207,7 @@ desertmask/1760//
 destro_v2/1045//
 deuce/755//
 deviant/3064//
+devil_helmet_hd/4573/devilhelmet_v2/
 devilhelmet_v2/605//
 devilrobo/470//
 devilterminator/9096//
@@ -4117,6 +4119,7 @@ latex_chick_new/5073//
 lavaburn/683//
 lavadog/972//
 lavaurban_v2/4356/shephard_ld/
+lc_claude/2925/claude/
 lcs_toni/1472//
 ld_barney/705//
 ld_barney2/705//
