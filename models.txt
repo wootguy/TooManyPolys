@@ -1735,7 +1735,7 @@ cryokeenbeta/605//
 cryokeenbeta2/605//
 cryomarinealpha/1833/marine_v2/
 cryotron1a/1833/marine_v2/
-crypto-137/2739/bananaboy_reg/
+crypto-137_v2/2739//
 crysis_asiannano/2038//
 crysis_nano1/10313/crysis_asiannano/
 crysis_nano2/10313/crysis_asiannano/
