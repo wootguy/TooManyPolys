@@ -1735,7 +1735,7 @@ cryokeenbeta/605//
 cryokeenbeta2/605//
 cryomarinealpha/1833/marine_v2/
 cryotron1a/1833/marine_v2/
-crypto-137_v2/2739//
+crypto-137_v3/2739/bananaboy_reg/
 crysis_asiannano/2038//
 crysis_nano1/10313/crysis_asiannano/
 crysis_nano2/10313/crysis_asiannano/
@@ -4932,6 +4932,10 @@ nazi_zomb3/11225//
 nazi_zomb4/7084//
 nazicap/1572//
 nazid250/1598//
+necoarc/14373//
+necoarcbubbles/14373//
+necoarcchaos/13441//
+necoarcdestiny/13441//
 neet64_v2/478//
 negro_v2/2450/ld_barney2/
 neil/631//
@@ -4961,6 +4965,7 @@ nekomata_maid_v2/4616//
 nekomata_mappa/3128//
 nekomata_mizugi_d_v2/3128//
 nekomata_mizugi_v2/3128//
+nekomata_ouo/2578//
 nekomata_scnormal_v2/2633//
 nekomata_skirt_d_v2/3769//
 nekomata_skirt_v2/3769//
@@ -6104,6 +6109,7 @@ s8n_techno/907//
 sa_bigsmoke/1324//
 sa_cesar/1497//
 sa_cj/2256//
+sa_cj2/3272/cj_ldsuit/
 sa_kendl/2036//
 sa_ogloc/1919//
 sa_ryder/1285//
