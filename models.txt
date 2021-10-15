@@ -1735,7 +1735,7 @@ cryokeenbeta/605//
 cryokeenbeta2/605//
 cryomarinealpha/1833/marine_v2/
 cryotron1a/1833/marine_v2/
-crypto-137_v3/2739/bananaboy_reg/
+crypto-137_v4/2823/bananaboy_reg/
 crysis_asiannano/2038//
 crysis_nano1/10313/crysis_asiannano/
 crysis_nano2/10313/crysis_asiannano/
@@ -3887,7 +3887,7 @@ kc_inazuma_n/22208//2d_kc_ikazuchi
 kc_murasame/22269//
 kc_murasame_a/35766/kc_murasame/
 kc_northern_avia/24698//2d_kc_northern
-kc_northern_v2/17802//2d_kc_northern
+kc_northern_v3/17802//2d_kc_northern
 kc_shimakaze_v2_n/25676/kancolle_shimakaze/2d_kancolle_shimakaze_v2
 keine/11615//
 kellerscuba/2551/wheelman/2d_soldier_wheelchair
@@ -5022,6 +5022,7 @@ nekotama4/2074/mona_notail/
 nekotama4b/2074/mona_notail/
 nekotama_nc/2074/mona_notail/
 nekotamab/2074/mona_notail/
+nekotoromaid/37636//
 neo/1004//
 neo2/3041/the_one/
 neon_cow_v2/564//
@@ -6381,6 +6382,7 @@ shambler/284//
 shark/1419//
 sharks_v2/604//
 shaun/2891//
+she-venom/2502//
 shedevil/975//
 shephard/425//
 shephard_ld/425//
@@ -7409,6 +7411,7 @@ the_borgqueen_v2/974//
 the_fist_v2/703//
 the_flash/766//
 the_joker_v2/919//
+the_legged_bewb/7034//
 the_one/1130//
 the_terminator_v2/639//
 the_trackers2_night/807//
