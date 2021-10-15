@@ -403,7 +403,7 @@ cribbon3/cribbon3.0
 crisis_us/cirsis_us/crsis_us
 cryohev_v2/cryohev
 cryokeen_hd_v2/cryokeen/cryokeen2018/cryokeen_hd
-crypto-137_v3/crypto-137/crypto-137_v2
+crypto-137_v4/crypto-137/crypto-137_v2/crypto-137_v3
 cscz_arctic/cs_arctic/cs_arctic2
 cscz_gign/cs_gign/cs_gign2
 cscz_gsg9/cs_gsg9/cs_gsg92
@@ -855,7 +855,7 @@ kattmat_v2/kattmat
 kazextreme2_v2/kazextreme2/kazextreme2_v2
 kc_ikazuchi/lt_ikazuchi
 kc_inazuma/lt_inazuma
-kc_northern_v2/fp_grethelv1/kc_northern/lt_eternal/lt_northern
+kc_northern_v3/fp_grethelv1/kc_northern/kc_northern_v2/lt_eternal/lt_northern
 kenneth sullivan/kennethsullivan
 kenneth_sullivan/kennethsullivan
 kermit_costume_v2/kermit_costume
