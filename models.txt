@@ -2637,6 +2637,8 @@ femhostage01/585//
 femhostage02/566//
 femsci/710//
 femspartan/1910//
+ferin/1990//
+fering/1990//
 fey/588//
 ff7_anim_caitsith/1259//
 ff7_anim_cloud_v2/914//
@@ -3419,6 +3421,7 @@ hevscientist5_ld/932//
 hevscientist_ld/767//
 hevsf/2321/shephard_ld_grn/
 hevslick/2839/ld_hevscientist4/
+hevsmile/4091/helmet_ld/
 hevsnark/5385//2d_hevsnark
 hevsp/3059/oldsuit_rusty1/
 hevwalter/2944/ld_hevscientist/
@@ -3701,6 +3704,9 @@ islave_baby_v2/504//
 islave_rb_v2/1236/islave/
 itachi/2137//
 italian_vip/1272//
+iv_johnny/20630//
+iv_luis/18360//
+iv_niko/16938//
 ivan/620//
 iyou/2074/mona_notail/
 j_blue/1601//
@@ -3967,6 +3973,7 @@ kitkat/1005//
 kitsune_hev/4448/ld_def/
 kiwami/1815//
 kiwi/609//
+kizuna_halloween/25079/vtuber_kizuna_black/
 kkaoru/2540//
 kkk_v2/630//
 klaymen/1202//
@@ -4228,6 +4235,7 @@ lolgwendoll/1316//
 lolinam/6967//2d_gs_blanc1
 lolipirate/6022//2d_gs_blanc1
 lolisleepy/4895//2d_gs_blanc1
+lolkatarina/14210//
 lolkdaahri/6720//
 lolkindred/4636//
 lollux/3742//
@@ -4529,6 +4537,7 @@ mgs4_pmc7/18674//mgs4_pmc
 mgs_snake/3544/solidsnake_v3/2d_snake
 mha_uraraka-visor/20726/mha_uraraka/
 mha_uraraka/19346//
+mha_uraraka_s5/26650/mha_uraraka/
 mha_uraraka_school/19504//
 mhcash/2220//
 mhcerberus/1340//
@@ -5993,7 +6002,7 @@ riko_nude/3994//
 riku/4716//
 rin_black/24481/vocaloid_rin/
 rinnosuke/2711//
-rintohsaka/6122//
+rintohsaka/6122/ferin/
 riotgrrrl_v2/917//
 rip/4337//
 rip_van_drip/865//
@@ -6506,6 +6515,7 @@ smg4melony/21974//
 smid/1120//
 smij/1120//
 smijv4/1120//
+smileheadscientist/2511/scientist_ld/
 smith_v2/2526/agent_v2/
 smokerl4d/5453//
 smol_ump9/11400//
