@@ -5,6 +5,10 @@ const string g_pmodel_folder_default = "scripts/plugins/store/playermodelfolder_
 const string g_pmodel_folder_addon = "scripts/plugins/store/playermodelfolder_addon/"; // Tailing /
 const string g_pmodel_folder_downloads = "scripts/plugins/store/playermodelfolder_downloads/"; // Tailing /
 
+string g_last_precache_map = "";
+array<string> g_ModelList; // list of models to precache
+array<string> g_LastModelList; // list of models that were precached on the previous map
+
 void addPlayerModel(CBasePlayer@ plr) {
 	if (plr is null) {
 		return;
@@ -33,6 +37,12 @@ void addPlayerModel(CBasePlayer@ plr) {
 }
 
 void precachePlayerModels() {
+	if (g_Engine.mapname == g_last_precache_map) {
+		// player models break fastdl if new ones are precached on a map restart
+		g_ModelList = g_LastModelList;
+		println("Map was restarted. Scheduled player model precaching cancelled to prevent slowdl bug.");
+	}
+
 	g_precachedModels.resize(0);
 	
 	g_Game.PrecacheModel(defaultLowpolyModelPath);
@@ -71,6 +81,9 @@ void precachePlayerModels() {
 	g_EntityFuncs.CreateEntity( "info_target", keys, true );
 
 	g_ModelList.resize( 0 );
+	
+	g_LastModelList = g_ModelList;
+	g_last_precache_map = g_Engine.mapname;
 }
 
 void loadPrecachedModels() {
