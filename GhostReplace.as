@@ -208,7 +208,7 @@ bool isGhostVisible(CBaseEntity@ ghost, CBaseEntity@ looker) {
 
 GhostReplace@ getGhostCopy(CBaseEntity@ ghost) {
 	for (uint i = 0; i < g_ghostCopys.size(); i++) {
-		if (ghost.entindex() == g_ghostCopys[i].ghost.GetEntity().entindex()) {
+		if (g_ghostCopys[i].ghost.IsValid() && ghost.entindex() == g_ghostCopys[i].ghost.GetEntity().entindex()) {
 			return g_ghostCopys[i];
 		}
 	}
