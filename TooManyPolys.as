@@ -67,7 +67,6 @@ const int unknownModelPolys = 50000; // assume the worst (better not to risk low
 
 const string moreInfoMessage = "Type '.hipoly' in console for more info.";
 
-array<string> g_ModelList; // list of models to precache
 array<array<Replacement>> g_replacements(33); // player idx -> current LOD seen for other players and ghosts
 array<string> g_cachedUserInfo(33); // used to detect when user info has changed, which undos model replacement
 array<GhostReplace> g_ghostCopys;
