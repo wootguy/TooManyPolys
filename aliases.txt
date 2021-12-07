@@ -260,6 +260,7 @@ bluestick_v2/bluestick
 blueteam_v2/blueteam
 blur_v2/blur
 bman_v2/bman
+bms_shephard/op4_shephard
 bmsoldier2_v2/bmsoldier2
 bob-o1_v2/bob-o1
 bob2_v2/bob/bob2
@@ -576,6 +577,7 @@ frogger_v2/frogger
 frost_v2/frost
 frostbatman_v2/frostbatman
 fry_v2/fry
+fscathach_v2/fscathach
 fsn_saber/fsnsaber
 fu2_v2/fu2
 fuctnny_v2/fuctnny
@@ -1462,6 +1464,7 @@ sinchanguu/lt_sinchanguu
 sister_mary_ellie_fant_v2/sister_mary_ellie_fant
 sky_v2/sky
 slidje_v2/slidje
+smg4melony_v2/smg4melony
 smith_v2/smith
 smokerl4d/l4d_smoker
 snake/snakeld
