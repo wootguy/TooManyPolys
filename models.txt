@@ -4101,14 +4101,17 @@ kurumi_tokisaki/6876//
 kv_aperture/31449/hatsunemiku_v2/2d_kz_lolimiku
 kv_zatsunemiku/31449/hatsunemiku_v2/2d_kz_lolimiku
 kv_zatsunemiku_s1/31449/hatsunemiku_v2/2d_kz_lolimiku
+kz_blaze/20860//
 kz_bowsette_v2/36152//
 kz_elin_01/20243//2d_lt_elin
 kz_elin_02/16074//2d_kz_elin_04_v2
+kz_elin_03/15153//2d_kz_elin_04_v2
 kz_elin_04_v1/17294//2d_kz_elin_04_v2
 kz_elin_04_v2/17294//2d_kz_elin_04_v2
 kz_elin_04_v3/17294//2d_kz_elin_04_v2
 kz_elin_05_v1/13847//2d_kz_elin_04_v2
 kz_elin_05_v2/13847//2d_kz_elin_04_v2
+kz_elin_07/14122//2d_kz_elin_04_v2
 kz_fgo_mheroine/15734//2d_kz_fgo_mheroine
 kz_kazami/4598/sonicsc/2d_sanic_v2
 kz_lolimiku/30744/hatsunemiku_v2/2d_kz_lolimiku
@@ -4125,7 +4128,10 @@ kz_nikooneshot/13050//2d_kz_nikooneshot
 kz_op_evilmiku/22279/hatsunemiku_v2/2d_kz_op_evilmiku
 kz_op_uni/16487//2d_gs_op_uni
 kz_reimu/27364/reimu/2d_kz_reimu
+kz_tda_etihw/25908//
 kz_touhou_momiji/21355/touhou_momiji/2d_momiji_inubashiri
+kz_yonaka/32112//
+kz_yosafire/29000//
 l4d2_coach/14231//
 l4d2_ellis/3640//
 l4d2_nick/17651//
@@ -7476,6 +7482,7 @@ th_jack_sd/3531/th_jack/
 th_neil/631//
 th_neil_sd/3052/th_neil/
 th_noheadz/639//
+th_nue_houjuu/21209//
 th_nurse/686//
 th_nurse_sd/3513/th_nurse/
 th_nypdcop/719//
@@ -7665,7 +7672,7 @@ touhou_kogasa_v2/4445//
 touhou_koishi/6042//2d_touhou_koishi
 touhou_koishi2/8549//
 touhou_koishiscarletv1/33871//
-touhou_kotohime/7394//
+touhou_kotohime_v2/7394//
 touhou_letty/6332//2d_touhou_letty
 touhou_marisa3/5133//
 touhou_meiling2/30858//

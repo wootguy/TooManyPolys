@@ -389,6 +389,8 @@
 	"kz_elin_01": ["", "2d_lt_elin"],
 	"tera_popori": ["", "2d_lt_elin"],
 	"tera_elin_devil": ["", "2d_lt_elin"],
+	"kz_elin_07": ["", "2d_kz_elin_04_v2"],
+	"kz_elin_03": ["", "2d_kz_elin_04_v2"],
 	"kz_elin_04_v1": ["", "2d_kz_elin_04_v2"],
 	"kz_elin_04_v2": ["", "2d_kz_elin_04_v2"],
 	"kz_elin_04_v3": ["", "2d_kz_elin_04_v2"],
