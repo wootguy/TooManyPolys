@@ -127,6 +127,7 @@ airborne04_r_v2/airborne04_r
 airborne04_s_v2/airborne04_s
 airborne04_v2/airborne04
 akatsuki_yuriv2_v2/akatsuki_yuriv2
+al_akashi/lt_akashi
 al_enterprise_v2/al_enterprise_v1/azur_lane_enterprise/azur_lane_enterprise_v2
 al_git_v2/al_git
 alcatraz_v2/alcatraz/lt_alcatraz
@@ -862,7 +863,7 @@ kenneth sullivan/kennethsullivan
 kenneth_sullivan/kennethsullivan
 kermit_costume_v2/kermit_costume
 kermit_v2/kermit/kermit_v2/lt_kermit
-kf_greywolf_kz_v2/kf_greywolf_0fa18/kf_greywolf_kz/lt_greywolf
+kf_greywolf_kz_v2/kf_greywolf_0fa18/kf_greywolf_kz/kf_greywolf_v2/lt_greywolf
 kf_shoebill/lt_shoebill
 kf_tsuchinoko/lt_tsuchinoko
 kfparamedicalfredanderson/kfparaalfredandrsn
@@ -980,7 +981,7 @@ megatron_v2/megatron/megatron-slaughter
 melf_v2/melf
 mib_v2/mib
 michigan_v2/michigan
-miketama_small_v2/miketama_small
+miketama_small_v2/miketama_small/miketama_small_v1
 miko_b_v2/miko_b
 miko_black_v2/miko_black
 miko_v2/miko
@@ -1674,9 +1675,10 @@ touhou_kirisame_marisa/touhou_marisa
 touhou_koa_devil/lt_koa
 touhou_kochiya_sanae_v2/touhou_kochiya_sanae/touhou_sanae
 touhou_kogasa_v2/touhou_kogasa
+touhou_kotohime_v2/touhou_kotohime
 touhou_meiling_v2/meiling/touhou_meiling
 touhou_momiji/touhou_momiji_old
-touhou_momiji_inuba/lt_momiji/touhou_momiji_inubashiri
+touhou_momiji_inuba/lt_momiji/momiji_inubashiri/touhou_momiji_inubashiri
 touhou_nagae_iku_v2/touhou_nagae_iku
 touhou_reimu/touhou_reimu_mmd
 touhou_remilia/touhou_remilia_scarlet
@@ -1685,7 +1687,7 @@ touhou_sanae/touhou_kochiya_sanae2
 touhou_sanae_jkc_v2/touhou_sanae_jkc
 touhou_sanae_jkg_v2/touhou_sanae_jkg
 touhou_sanae_jky_v2/touhou_sanae_jky
-touhou_sekibanki_v2/touhou_sekibanki
+touhou_sekibanki_v2/touhou_sekibanki/touhou_sekibankiv2
 touhou_suwako/touhou_swako
 touhou_tenshi/touhou_hinanawi_tenshi
 touhou_tenshi_40k/40k_sisters_tenshi
