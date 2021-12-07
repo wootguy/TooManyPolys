@@ -252,7 +252,7 @@ void load_aliases() {
 	
 	println("TooManyPolys: Duplicated " + aliasCount + " ModelInfos from " + g_alias_list_path);
 	
-	g_model_list.stats();
+	//g_model_list.stats();
 }
 
 class PlayerModelInfo {
@@ -754,7 +754,6 @@ void update_models() {
 		
 		if (isObserver != g_wasObserver[i] || userInfo != g_cachedUserInfo[plr.entindex()]) {
 			g_forceUpdateClients[i] = true;
-			println("SHOULD FORCE");
 		}
 		
 		g_cachedUserInfo[plr.entindex()] = userInfo;
