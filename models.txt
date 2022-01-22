@@ -710,9 +710,11 @@ assassin_v2/958//
 assassinscreed_ezio/2858//
 assaulthelmet/5242/oghelmet/
 astolfo_fumo/26166/fgo_astolfo-sf2/
-astolfo_mazz/26019/fgo_astolfo-sf2/
-astolfo_mazz_old/26019/fgo_astolfo-sf2/
+astolfo_mazz/26019/fgo_astolfo_black/
+astolfo_mazz_old/26019/fgo_astolfo_black/
 astolfo_mera_v2/24485/fgo_astolfo_black/
+astolfo_ranian/30750/fgo_astolfo_black/
+astolfo_xmas/22582/fgo_astolfo-sf2/
 aswat-gold/775//
 aswat/775//
 aswat03/775//
@@ -1016,6 +1018,7 @@ biokeenop/3201//
 biomechanoid/3773//
 bip01/2056//
 biped/678//
+bipped/2000//
 bitch_v2/1218/bfassn/
 bitterman/766//
 bittersweet_v2/861//
@@ -1303,6 +1306,7 @@ cap_otis/2313/otis/
 cappie_v2/3113//
 capt-hornet_v2/956//
 capt_a/4746/captainamerica/
+captain_colour/3113//
 captain_hornet_v2/766//
 captain_scarlet_v2/3113//
 captainamerica/2143//
@@ -1510,6 +1514,13 @@ cloud_ac/3122/ff7cloud/
 cloud_kh2/3122/ff7cloud/
 cloud_strife_v2/8103/ff7cloud/
 clowncop_v2/383//
+cm3d2_catgirl/54483//
+cm3d2_dragon/58132//
+cm3d2_fox/58291//
+cm3d2_kagerou2/60577//
+cm3d2_miku_bunny/54589//
+cm3d2_succubus_1/54249//
+cm3d2_succubus_2/56335//
 coat/601//
 cobra1/705//
 cobra2/488//
@@ -2282,6 +2293,7 @@ dis_ratty/5739//2d_dis_ratty
 discoball/960//
 discoman2/904//
 discoman_v2/904//
+divayth/4876//
 dk64_chunky/693//
 dk64_diddy/684//
 dk64_dixie/875//
@@ -2333,6 +2345,7 @@ dmc4_ns/4867//
 dmc5_dante/20040/dante_v2/
 dmc_dante/5105/dante_v2/
 dmc_vergil/3734//
+dmc_vergil2/5145//
 dmz_brolly/1504//
 dmz_buu/1962/esf_evilbuu/
 dmz_cell/2498/scell/
@@ -2698,6 +2711,7 @@ flandre_bikini/3406/flandre4/2d_touhou_flandre_scarlet
 flandre_cab_nude/3697/flandre4/2d_touhou_flandre_scarlet
 flandre_nude/3406/flandre4/2d_touhou_flandre_scarlet
 flasher/710//
+flatshade/2556//
 fleashpound_v1/2166//
 floatershit/422//
 flora/4779/flora2/
@@ -2808,6 +2822,7 @@ fused/919//
 fusespiked/1055//
 fuuko_v2/2472//
 g_freeman/1392/guerilla16/
+g_gintoki/8182//
 gaara/4064/shippudden_gaara2/
 gaara_16/4064/shippudden_gaara2/
 gabeprismriver/886//
@@ -3481,6 +3496,7 @@ hipoglos/262//
 his_royal_guardian_v2/606//
 hislave/2869//
 hitbarney/2329/ts_hitman/
+hitbox/4880/bipped/
 hitgrunt/2345/ts_hitman/
 hithevbar/2990/ts_hitman/
 hitler/2081/adolf/
@@ -3534,10 +3550,18 @@ hl_pitdrone/2108//
 hl_recon/604//
 hl_sarge/632//
 hl_shotgun/650//
+hlai_sunkist/8//
+hle_sniper_grunt/713//
+hle_sniper_grunt2/906/shephard_ld/
+hle_sniper_grunt3/1016/shephard_ld/
 hlf_dedz_grdn/5194/gordon_ld/
 hlgawrgura/19343//
 hlgawrgurabig/19343//
 hlpc_billy_v2/783//
+hlrs_fhelmet/608//
+hlrs_gina/720//
+hlrs_gordon/1039/gordon_ld/
+hlrs_helmet/580//
 hls_hgrunt/3663/shephard_ld/
 hls_hgruntb/3663/shephard_ld/
 hm/1434//
@@ -3583,13 +3607,23 @@ hofficer1/3000/hofficer2/
 hofficer2/2461//
 holli_v2/975//
 holo_aqua_lowpoly/547//
+holo_baelz_lowpoly/560//
 holo_coco_lowpoly/436//
+holo_korone_lowpoly/505//
 holo_mori_lowpoly/530//
 holo_nenechi_lowpoly/518//
+holo_okayu_lowpoly/548//
 holo_ollie_lowpoly/513//
 holo_pekora_lowpoly/536//
+holo_polka_lowpoly/551//
 holo_rushia_lowpoly/567//
+holo_sana_lowpoly/532//
+holo_subaru_ff7/1214//
+holo_takodachi_hsize/264//
+holo_takodachi_psize/272//
+holo_towa_lowpoly/496//
 holo_v2/720//
+holo_watame_lowpoly/644//
 holochrome/775//
 hololive_fubuki/21839//
 holoshit/720//
@@ -3626,6 +3660,7 @@ hungerzork_v2/689//
 hunk1/1403//
 hunk2/6472/re_ubss_hunk/
 hunk_hd/6472/re_ubss_hunk/
+hunk_re2r_v2/41528/re_ubss_hunk/
 hunk_re4/6472/re_ubss_hunk/
 hunk_v3/5299/re_ubss_hunk/
 hunted/777//
@@ -3929,7 +3964,7 @@ kc_murasame/22269//
 kc_murasame_a/35766/kc_murasame/
 kc_northern_avia/24698//
 kc_northern_avia_v2/24698//2d_kc_northern
-kc_northern_v3/17802//2d_kc_northern
+kc_northern_v4/23564//2d_kc_northern
 kc_shimakaze_v2_n/25676/kancolle_shimakaze/2d_kancolle_shimakaze_v2
 keine/11615//
 kellerscuba/2551/wheelman/2d_soldier_wheelchair
@@ -4405,6 +4440,7 @@ madotuki_v3/4805//
 madscientist/1797/madscientist_ld/
 madscientist_ld/1285//
 maelstrom00/766//
+maeve_street_v1/25190//
 mafiaboss/2492//
 mafioso2/3146//
 mafioso_v2/3144//
@@ -4516,7 +4552,7 @@ mcdonold/797//
 mce_ene/47674//2d_mce_ene
 mcpixel/754//
 mdn_ankokuboshi_kurome/20334/h-mdn_anko_kurome/2d_mdn_tenno_uzume-c2
-mdn_tenno_uzume-c2/20334/h-mdn_tenno_uzume/2d_mdn_tenno_uzume-c2
+mdn_tenno_uzume-c2_v2/20334/h-mdn_tenno_uzume/2d_mdn_tenno_uzume-c2
 mdn_tenno_uzume-c3/20334/h-mdn_tenno_uzume/2d_mdn_tenno_uzume-c3
 mdn_tenno_uzume-mizugi/19259//2d_mdn_tenno_uzume-mizugi
 mdn_tennouboshi_uzume/20334/h-mdn_tenno_uzume/2d_mdn_tennouboshi_uzume
@@ -4574,6 +4610,8 @@ mgs1_guard/2238//
 mgs2_tengu/1904//
 mgs2snake/1676/solidsnake_v3/2d_snake
 mgs2soldier/3009/gurlukovichsoldier/
+mgs3_ocelot/4273/ocelot/
+mgs3_snake/4599/snake_armysuit/2d_snake
 mgs4_pmc/1514//
 mgs4_pmc1/13776//mgs4_pmc
 mgs4_pmc2/13118//mgs4_pmc
@@ -4587,6 +4625,8 @@ mha_uraraka-visor/20726/mha_uraraka/
 mha_uraraka/19346//
 mha_uraraka_s5/26650/mha_uraraka/
 mha_uraraka_school/19504//
+mhahimikoa/29604/mhahimikob/
+mhahimikob/22140//
 mhcash/2220//
 mhcerberus/1340//
 mhhoodb/1367//
@@ -4691,8 +4731,13 @@ mk9_kitana/19439//
 mk9_smoke/21991//
 mk_frost/2735//
 mk_kenshi/2666//
+mk_kunglao/7385//
 mk_nightwolf/16976//
+mk_raiden/16071//
 mk_rain/21049//
+mk_scorpion/14655/scorpion_v2/
+mk_shangtsung/14338//
+mk_subzero/15171/subzero/
 mlc_allied_soldier/1262/allies/
 mlc_desert/404//
 mlc_hecu/404//
@@ -4908,6 +4953,11 @@ n64_mario/725//
 n64_mario_map/725//
 n64_metalmario/725//
 nabeshin/786//
+nagato_bikini/25061/al_nagato_ld/
+nagato_xmas/47425/al_nagato_ld/
+nagato_xmas_black/47425/al_nagato_ld/
+nagato_xmas_blackn/25391/al_nagato_ld/
+nagato_xmas_n/29465/al_nagato_ld/
 naked/710//
 nakedkobold3/7338//
 nakedkobold_j4/7014//
@@ -5159,6 +5209,7 @@ nomak/3108//
 nomble/648//
 nono/1774//
 nonon_regalia/35888//
+normalmap/2556//
 not_precached_man_v2/480//
 nox/1704//
 nox_gam/15419//2d_gs_succubusgirl
@@ -5636,6 +5687,7 @@ police4/3554//
 policecar/564//
 policecar2/2507//
 policeman/766//
+poliisikoira/728//
 politician/1598//
 poniko_v3/4017//
 postal_dude/855//
@@ -6606,6 +6658,7 @@ smg4melony_v2/21974//
 smid/1120//
 smij/1120//
 smijv4/1120//
+smileheadgman/2177/gman_ld/
 smileheadscientist/2511/scientist_ld/
 smith_v2/2526/agent_v2/
 smokerl4d/5453//
@@ -6779,6 +6832,8 @@ sovvdv_1970c/9081/sovietsoldier1/
 sovvdv_1975cb/8724/sovietsoldier1/
 sovvdv_1985c1/8540/sovietsoldier1/
 sp22/830//
+sp_aqua_color/15156/sp_aqua_hatm_color/
+sp_aqua_hatm_color/14548//
 sp_aqua_hatm_v2/14548//
 sp_aqua_v2/15156/sp_aqua_hatm_v2/
 sp_arabianmiku/18740/hatsunemiku_v2/2d_sp_arabianmiku
@@ -7920,6 +7975,7 @@ usmc-sniper/849//
 usmc/2960//
 usmcc/526//
 uwan/1164//
+uzaki_hana/54522//
 v&mgirl/916//
 v/11682//
 v_franklin/29849//
@@ -8002,6 +8058,8 @@ vocaloid_yukari-yuzuki/41062//
 vocaloid_yukari_yuzuki/47126/vocaloid_yukari-yuzuki/
 vocaloid_yuzuki-yukari/41062//
 vocaloid_yuzuki_yukari/47126/vocaloid_yukari-yuzuki/
+voms_pikamee_lowpoly/620//
+voms_tomo_lowpoly/508//
 vorinc/11055//
 vortigaunt_junior/3629/islave/
 votoms_v2/763//
@@ -8085,6 +8143,7 @@ will_v2/639//
 wind_shark_v2/2478/ld_def/
 wingzero/2189/god/
 wireframe/766//
+wireframe2/4556/bipped/
 wirez/3807/paranoid/
 witch/818//
 withered_bonnie/28255/da_nm_bonniehw/
@@ -8173,6 +8232,7 @@ yellow_heart/13216//2d_yellow_heart
 yellow_medic/616//
 yellowcomet/2706//
 yellowstick_v2/2152//
+ying_street_v1/23891//
 yoda2/3212/yoda_v2/2d_yoda2
 yoda_the_droid/748//
 yoda_v2/865//
@@ -8230,6 +8290,8 @@ zell/577//
 zero/1074//
 zero2/1675/zero/
 zerob/2634/zero/
+zerotwo_v1/40957//
+zerotwo_v2/40957//
 zgundam/3850/god/
 zicke_fun/224//
 zicke_v2/1405//

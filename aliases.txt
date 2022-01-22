@@ -476,6 +476,7 @@ dli/david2
 dm_slave_v2/dm_slave
 dmc3_vergil_v2/dmc3_vergil
 dmc4_nero/lmn/lt_dmc4
+dmc_vergil2/dmc_vergil
 doa_v2/doa
 doc_holliday_v2/doc_holliday
 dogs_v2/dogs
@@ -782,6 +783,7 @@ holo_v2/holo
 homer1_v2/homer1
 homer_v2/homer
 hungerzork_v2/hungerzork
+hunk_re2r_v2/hunk_re2r
 hunk_v3/hunk/hunk_v2
 hunter_l4d/l4d_hunter
 hvyweapon2_v2/hvyweapon2
@@ -858,7 +860,7 @@ kattmat_v2/kattmat
 kazextreme2_v2/kazextreme2/kazextreme2_v2
 kc_ikazuchi/lt_ikazuchi
 kc_inazuma/lt_inazuma
-kc_northern_v3/fp_grethelv1/kc_northern/kc_northern_v2/lt_eternal/lt_northern
+kc_northern_v4/fp_grethelv1/kc_northern/kc_northern_v2/kc_northern_v3/lt_eternal/lt_northern
 kenneth sullivan/kennethsullivan
 kenneth_sullivan/kennethsullivan
 kermit_costume_v2/kermit_costume
@@ -973,6 +975,7 @@ maxpayne_v2/maxpayne
 maya_borderlands/maya
 maya_dawn_v2/maya_dawn
 mc_steve_v2/lt_maincraft/maincraft/mc_steve
+mdn_tenno_uzume-c2_v2/mdn_tenno_uzume-c2
 mechawrs/brs_white2
 medic/new_medic
 mega_axl/axl
@@ -1772,6 +1775,7 @@ wildflower_v2/wildflower
 wileecoyote_v2/wileecoyote
 will_v2/will
 wind_shark_v2/wind_shark
+wireframe2/wireframe
 wolf_admin_v2/wolf_admin
 wolverine_v2/wolverine
 woodpixie_v2/woodpixie
