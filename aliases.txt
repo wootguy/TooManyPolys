@@ -899,7 +899,10 @@ kz_bowsette_v2/kz_bowsette
 kz_elin_04_v1/lt_kz_elin_04_v1
 kz_megumi_v2/kz_megumin/megumin
 kz_miku_w/gs_miku_@w@
-kz_mikutda_v4/kz_miku/kz_mikutda_v1/kz_mikutda_v1_2/kz_mikutda_v2/kz_mikutda_v2_2/kz_mikutda_v3/kz_mikutda_v3_2/kz_mikutda_v4_2
+kz_mikutda_v1/kz_mikutda_v1_2
+kz_mikutda_v2/kz_mikutda_v2_2
+kz_mikutda_v3/kz_mikutda_v3_2
+kz_mikutda_v4/kz_miku/kz_mikutda_v4_2
 kz_moeglados_v2/gs_moeglados_v2
 kz_nerutda_v2/kz_neru/kz_nerutda_v1/kz_neruu
 kz_touhou_momiji/touhou_momiji/touhou_momiji_hd
@@ -1018,6 +1021,7 @@ monogatari_shinobu/fp_r
 monoko1_v3/monoko1/monoko1_v2
 monoko2_v3/monoko2/monoko2_v2
 monster_hunter_v2/monster_hunter
+moonhitler_v2/moonhitler/moonhitler_v2
 moonman/fp_venger2017/lt_moonman_v2
 morphbeta_v2/morphbeta
 mp_security_v2/mp_security
@@ -1687,9 +1691,9 @@ touhou_reimu/touhou_reimu_mmd
 touhou_remilia/touhou_remilia_scarlet
 touhou_rumia_v2/touhou_rumia
 touhou_sanae/touhou_kochiya_sanae2
-touhou_sanae_jkc_v2/touhou_sanae_jkc
-touhou_sanae_jkg_v2/touhou_sanae_jkg
-touhou_sanae_jky_v2/touhou_sanae_jky
+touhou_sanae_jkc_v3/touhou_sanae_jkc/touhou_sanae_jkc_v2
+touhou_sanae_jkg_v3/touhou_sanae_jkg/touhou_sanae_jkg_v2
+touhou_sanae_jky_v3/touhou_sanae_jky/touhou_sanae_jky_v2
 touhou_sekibanki_v2/touhou_sekibanki/touhou_sekibankiv2
 touhou_suwako/touhou_swako
 touhou_tenshi/touhou_hinanawi_tenshi

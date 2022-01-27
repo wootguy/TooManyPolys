@@ -2518,6 +2518,7 @@ einarhev/675//
 einstein/3234/ld_scientist4/
 eirin/10501//
 eisendk/470//
+el_chavo/6584//
 el_chivo/679//
 el_diablo_v2/766//
 el_tuche/775//
@@ -4156,6 +4157,9 @@ kz_megumin/10850//
 kz_megumin_r/16178/kz_megumin_r_nohat/2d_kz_megumi_v2
 kz_megumin_r_nohat/14902//2d_kz_megumi_v2
 kz_miku_w/15479/hatsunemiku_v2/2d_kz_lolimiku
+kz_mikutda_v1/24205/hatsunemiku_v2/2d_kz_miku
+kz_mikutda_v2/24205/hatsunemiku_v2/2d_kz_miku
+kz_mikutda_v3/31449/hatsunemiku_v2/2d_kz_miku
 kz_mikutda_v4/31449/hatsunemiku_v2/2d_kz_miku
 kz_moeglados_v2/16221//2d_kz_moeglados_v2
 kz_nerutda_v2/28232/vocaloid_akita/2d_kz_neruu
@@ -4800,6 +4804,7 @@ monoko1_v3/4269//
 monoko2_v3/5205//
 monspeet/19592//
 monster_hunter_v2/5054//
+moonhitler_v2/2247//
 moonman/2822//
 morara/2074/mona_notail/
 morara2/2074/mona_notail/
@@ -7762,9 +7767,9 @@ touhou_sakuya_bikini/3353//
 touhou_sakuya_gothic/9935/touhou_sakuya_bikini/
 touhou_sakuya_gothic2/9597/touhou_sakuya_bikini/
 touhou_sanae/5116//
-touhou_sanae_jkc_v2/25753//
-touhou_sanae_jkg_v2/25753//
-touhou_sanae_jky_v2/25753//
+touhou_sanae_jkc_v3/22865/touhou_sanae/
+touhou_sanae_jkg_v3/22865/touhou_sanae/
+touhou_sanae_jky_v3/22865/touhou_sanae/
 touhou_sekibanki_v2/22723//
 touhou_shinmyou/5317//
 touhou_shizuha/4593//
