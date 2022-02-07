@@ -46,6 +46,8 @@ enum LEVEL_OF_DETAIL
 class PlayerState {
 	bool prefersHighPoly = true; // true if player would rather have horrible FPS than see low poly models
 	int polyLimit = cvar_default_poly_limit.GetInt();
+	string lastNagModel = ""; // name of the model that the player was last nagged about
+	float lastJoinTime = 0;
 	
 	int debug;
 	int debugPolys;
@@ -142,6 +144,9 @@ HookReturnCode ClientJoin( CBasePlayer@ plr ) {
 	for (uint i = 0; i < g_ghostCopys.size(); i++) {
 		g_ghostCopys[i].setLod(plr, LOD_HD);
 	}
+	
+	PlayerState@ pstate = getPlayerState(plr);
+	pstate.lastJoinTime = g_Engine.time;
 
 	return HOOK_CONTINUE;
 }
@@ -776,10 +781,16 @@ void check_model_names() {
 		ModelInfo latest_info = g_model_list.get(currentModel);
 
 		if (latest_info.officialName.Length() > 0 and latest_info.officialName != currentModel)  {
-			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, 'Your model was changed to "' + latest_info.officialName + '" because "' + currentModel + '" is an unofficial name or old version.\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, 'Your model was changed to "' + latest_info.officialName + '" because "' + currentModel + '" is an alias or old version of the same model.\n');
 			pInfos.SetValue( "model", latest_info.officialName );
-		} else if (latest_info.officialName.Length() == 0) {
-			// model not installed on server
+		} else if (latest_info.officialName.Length() > 23) { // path to model would be longer than 64 characters (max file path length for precaching)
+			PlayerState@ pstate = getPlayerState(plr);
+			
+			// wait a while in case player is still loading
+			if ((g_Engine.time - pstate.lastJoinTime) > 60 and pstate.lastNagModel != latest_info.officialName) {
+				pstate.lastNagModel = latest_info.officialName;
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, 'The name of your model "' + latest_info.officialName + '" is too long (23+ characters). The server can\'t share it with other players.\n');
+			}
 		}
 	}
 }
