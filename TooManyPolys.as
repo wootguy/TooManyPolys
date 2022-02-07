@@ -26,6 +26,7 @@ void print(string text) { g_Game.AlertMessage( at_console, text); }
 void println(string text) { print(text + "\n"); }
 
 class ModelInfo {
+	string officialName;
 	uint32 polys = defaultLowpolyModelPolys;
 	string replacement_sd = defaultLowpolyModel; // standard-def replacement, lower poly but still possibly too high
 	string replacement_ld = defaultLowpolyModel; // lowest-def replacement, should be a 2D model or the default replacement
@@ -94,6 +95,7 @@ void PluginInit() {
 	load_model_list();
 	
 	g_Scheduler.SetInterval("update_models", 0.1, -1);
+	g_Scheduler.SetInterval("check_model_names", 1.0, -1);
 	g_Scheduler.SetInterval("update_ghost_models", 0.05, -1);
 	
 	loadPrecachedModels();
@@ -198,6 +200,7 @@ void load_model_list() {
 		//println("LOAD " + model_name + " " + poly_count + " " + replace_model);
 		
 		ModelInfo info;
+		info.officialName = model_name.ToLowercase();
 		info.polys = poly_count;
 		info.replacement_sd = sd_model.Length() > 0 ? sd_model : defaultLowpolyModel;
 		info.replacement_ld = ld_model.Length() > 0 ? ld_model : defaultLowpolyModel;
@@ -758,6 +761,26 @@ void update_models() {
 		
 		g_cachedUserInfo[plr.entindex()] = userInfo;
 		g_wasObserver[i] = isObserver;
+	}
+}
+
+void check_model_names() {
+	for( int i = 1; i <= g_Engine.maxClients; ++i ) {
+		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex( i );
+
+		if (plr is null or !plr.IsConnected())
+			continue;
+		
+		KeyValueBuffer@ pInfos = g_EngineFuncs.GetInfoKeyBuffer( plr.edict() );
+		string currentModel = pInfos.GetValue( "model" ).ToLowercase();
+		ModelInfo latest_info = g_model_list.get(currentModel);
+
+		if (latest_info.officialName.Length() > 0 and latest_info.officialName != currentModel)  {
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, 'Your model was changed to "' + latest_info.officialName + '" because "' + currentModel + '" is an unofficial name or old version.\n');
+			pInfos.SetValue( "model", latest_info.officialName );
+		} else if (latest_info.officialName.Length() == 0) {
+			// model not installed on server
+		}
 	}
 }
 
