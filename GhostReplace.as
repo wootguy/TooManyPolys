@@ -121,6 +121,10 @@ class GhostReplace {
 	}
 	
 	void setLod(CBasePlayer@ plr, int lod) {
+		if (!ghostRender.IsValid()) {
+			return;
+		}
+		
 		ghostRender.GetEntity().Use(plr, plr, lod == LOD_HD ? USE_OFF : USE_ON);
 		
 		bool renderHd = lod == LOD_HD;

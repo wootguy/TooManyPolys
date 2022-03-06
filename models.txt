@@ -849,6 +849,7 @@ bananaboy_dress/1308//
 bananaboy_pink/1308//
 bananaboy_red/1308//
 bananaboy_reg/1308//
+bananaboy_v2/1308//
 bananaboy_v3/1308//
 bananaboy_virt/1308//
 bananaboy_yellow/1308//
@@ -3965,6 +3966,7 @@ kc_murasame/22269//
 kc_murasame_a/35766/kc_murasame/
 kc_northern_avia/24698//
 kc_northern_avia_v2/24698//2d_kc_northern
+kc_northern_v3/17802//2d_kc_northern
 kc_northern_v4/23564//2d_kc_northern
 kc_shimakaze_v2_n/25676/kancolle_shimakaze/2d_kancolle_shimakaze_v2
 keine/11615//

@@ -273,6 +273,7 @@
 	"pyro_skeleton": ["q3a_bones_v2", ""],
 	"kc_hoppou_tot": ["", "2d_kc_northern"],
 	"kc_northern_avia_v2": ["", "2d_kc_northern"],
+	"kc_northern_v3": ["", "2d_kc_northern"],
 	"kc_northern_v4": ["", "2d_kc_northern"],
 	"vergil_dmc": ["dmc3_vergil_v2", ""],
 	"gs_orangesister": ["", "2d_gs_orangesister"],
