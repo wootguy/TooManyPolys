@@ -600,7 +600,7 @@ void replace_highpoly_models(CBasePlayer@ looker, array<bool>@ g_forceUpdateClie
 		CBaseEntity@ replaceEnt = replacement.h_ent;
 		CBaseEntity@ replaceOwner = replacement.h_owner;
 		
-		if (replaceEnt is null) {
+		if (replaceEnt is null or replaceOwner is null) {
 			continue;
 		}
 		
@@ -647,7 +647,7 @@ void replace_highpoly_models(CBasePlayer@ looker, array<bool>@ g_forceUpdateClie
 		CBaseEntity@ replaceEnt = replacement.h_ent;
 		CBaseEntity@ replaceOwner = replacement.h_owner;
 		
-		if (replaceEnt is null) {
+		if (replaceEnt is null or replaceOwner is null) {
 			continue;
 		}
 		
@@ -782,6 +782,7 @@ void check_model_names() {
 
 		if (latest_info.officialName.Length() > 0 and latest_info.officialName != currentModel)  {
 			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, 'Your model was changed to "' + latest_info.officialName + '" because "' + currentModel + '" is an alias or old version of the same model.\n');
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, 'If you see yourself as the helmet model, then wait for the next map. The server will send you ' + latest_info.officialName + '.\n');
 			pInfos.SetValue( "model", latest_info.officialName );
 		} else if (latest_info.officialName.Length() > 23) { // path to model would be longer than 64 characters (max file path length for precaching)
 			PlayerState@ pstate = getPlayerState(plr);
