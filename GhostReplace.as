@@ -224,6 +224,10 @@ GhostReplace@ getGhostCopy(CBaseEntity@ ghost) {
 }
 
 void update_ghost_models() {
+	if (g_paused) {
+		return;
+	}
+	
 	for (uint i = 0; i < g_ghostCopys.size(); i++) {
 		if (!g_ghostCopys[i].update()) {
 			g_ghostCopys.removeAt(i);
