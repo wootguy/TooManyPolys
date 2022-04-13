@@ -77,6 +77,8 @@ array<string> g_precachedModels;
 array<bool> g_forceUpdateClients(33);
 array<bool> g_wasObserver(33);
 
+bool g_paused = false; // debug performance issues
+
 class Replacement {
 	EHandle h_ent; // entity being replaced
 	EHandle h_owner; // player which owns the entity (to know which model is used)
@@ -737,6 +739,10 @@ void debug(CBasePlayer@ plr) {
 }
 
 void update_models() {
+	if (g_paused) {
+		return;
+	}
+	
 	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {		
 		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
 		
@@ -935,6 +941,11 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 		}
 		else if (args[0] == ".hipoly") {
 			if (args.ArgC() > 1) {
+				if (args[1] == "pause" and isAdmin) {
+					g_paused = !g_paused;
+					g_PlayerFuncs.ClientPrintAll(HUD_PRINTTALK, "[hipoly] " + plr.pev.netname + " " + (g_paused ? "paused" : "resumed") + " model replacements." + "\n");
+					return true;
+				}
 				if (args[1] == "toggle") {
 					state.prefersHighPoly = !state.prefersHighPoly;
 				} else {
