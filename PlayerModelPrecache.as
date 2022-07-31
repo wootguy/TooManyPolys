@@ -1,5 +1,10 @@
 // Code from the PlayerModelPrecacheGeneric plugin.
 // TooManyPolys needs to do the same thing for the SD and LD model replacements
+//
+// Example commands to make symbolic link on Windows:
+// mklink /D "C:\Games\Steam\steamapps\common\Sven Co-op\svencoop\scripts\plugins\store\playermodelfolder_downloads" "C:\Games\Steam\steamapps\common\Sven Co-op\svencoop_downloads\models\player"
+// mklink /D "C:\Games\Steam\steamapps\common\Sven Co-op\svencoop\scripts\plugins\store\playermodelfolder_default" "C:\Games\Steam\steamapps\common\Sven Co-op\svencoop\models\player"
+// mklink /D "C:\Games\Steam\steamapps\common\Sven Co-op\svencoop\scripts\plugins\store\playermodelfolder_addon" "C:\Games\Steam\steamapps\common\Sven Co-op\svencoop_addon\models\player"
 
 const string g_pmodel_folder_default = "scripts/plugins/store/playermodelfolder_default/"; // Tailing /
 const string g_pmodel_folder_addon = "scripts/plugins/store/playermodelfolder_addon/"; // Tailing /

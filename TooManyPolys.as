@@ -49,11 +49,28 @@ class PlayerState {
 	string lastNagModel = ""; // name of the model that the player was last nagged about
 	float lastJoinTime = 0;
 	
-	int debug;
-	int debugPolys;
-	int debugReducedPolys;
-	int debugVisiblePlayers;
-	int debugTotalPlayers;
+	array<EHandle> refreshList; // player models to refresh, once they come into view
+	
+	bool modelSwapAll = false;
+	string modelSwapAllModel = "";
+	dictionary modelSwaps;
+	dictionary modelUnswaps;
+	
+	string getSwapModel(CBasePlayer@ target) {
+		if (modelSwapAll) {
+			return modelSwapAllModel;
+		}
+	
+		string steamid = g_EngineFuncs.GetPlayerAuthId(target.edict()).ToLowercase();
+			
+		if (modelSwaps.exists(steamid)) {
+			string swap;
+			modelSwaps.get(steamid, swap);
+			return swap;
+		}
+		
+		return "";
+	}
 }
 
 string g_model_list_path = "scripts/plugins/TooManyPolys/models.txt";
@@ -70,11 +87,9 @@ const int unknownModelPolys = 50000; // assume the worst (better not to risk low
 
 const string moreInfoMessage = "Type '.hipoly' in console for more info.";
 
-array<array<Replacement>> g_replacements(33); // player idx -> current LOD seen for other players and ghosts
 array<string> g_cachedUserInfo(33); // used to detect when user info has changed, which undos model replacement
 array<GhostReplace> g_ghostCopys;
 array<string> g_precachedModels;
-array<bool> g_forceUpdateClients(33);
 array<bool> g_wasObserver(33);
 
 bool g_paused = false; // debug performance issues
@@ -83,6 +98,7 @@ class Replacement {
 	EHandle h_ent; // entity being replaced
 	EHandle h_owner; // player which owns the entity (to know which model is used)
 	int lod = LOD_HD; // current level of detail
+	string model;
 }
 
 void PluginInit() {
@@ -91,14 +107,14 @@ void PluginInit() {
 	
 	g_Hooks.RegisterHook( Hooks::Player::ClientSay, @ClientSay );
 	g_Hooks.RegisterHook( Hooks::Player::ClientPutInServer, @ClientJoin );
-	g_Hooks.RegisterHook( Hooks::Player::PlayerEnteredObserver, @PlayerEnteredObserver );
+	g_Hooks.RegisterHook( Hooks::Player::ClientDisconnect, @ClientLeave );
 	g_Hooks.RegisterHook( Hooks::Game::MapChange, @MapChange );
 	
 	@cvar_default_poly_limit = CCVar("default_poly_limit", 32000, "max player visble polys", ConCommandFlag::AdminOnly);
 	
 	load_model_list();
 	
-	g_Scheduler.SetInterval("update_models", 0.1, -1);
+	g_Scheduler.SetInterval("check_if_swaps_needed", 0.5, -1);
 	g_Scheduler.SetInterval("check_model_names", 1.0, -1);
 	g_Scheduler.SetInterval("update_ghost_models", 0.05, -1);
 	
@@ -106,7 +122,20 @@ void PluginInit() {
 }
 
 void PluginExit() {
-	reset_models();
+	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {
+		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
+		if (plr is null or !plr.IsConnected())
+			continue;
+		
+		UserInfo(plr).broadcast();
+	}
+	
+	for (uint i = 0; i < g_ghostCopys.size(); i++) {
+		g_EntityFuncs.Remove(g_ghostCopys[i].ghostSD);
+		g_EntityFuncs.Remove(g_ghostCopys[i].ghostLD);
+		g_EntityFuncs.Remove(g_ghostCopys[i].ghostRenderSD);
+		g_EntityFuncs.Remove(g_ghostCopys[i].ghostRenderLD);
+	}
 }
 
 void MapInit() {
@@ -115,11 +144,7 @@ void MapInit() {
 	for (uint i = 0; i < 33; i++) {
 		g_wasObserver[i] = false;
 		g_cachedUserInfo[i] = "";
-		g_forceUpdateClients[i] = false;
 	}
-	
-	g_replacements.resize(0);
-	g_replacements.resize(33);
 }
 
 // Will create a new state if the requested one does not exit
@@ -141,6 +166,18 @@ PlayerState@ getPlayerState(CBasePlayer@ plr) {
 }
 
 HookReturnCode ClientJoin( CBasePlayer@ plr ) {	
+	g_Scheduler.SetTimeout("post_join", 0.5f, EHandle(plr));
+
+	return HOOK_CONTINUE;
+}
+
+void post_join(EHandle h_plr) {
+	CBasePlayer@ plr = cast<CBasePlayer@>(h_plr.GetEntity());
+	
+	if (plr is null) {
+		return;
+	}
+	
 	addPlayerModel(plr);
 
 	for (uint i = 0; i < g_ghostCopys.size(); i++) {
@@ -149,7 +186,12 @@ HookReturnCode ClientJoin( CBasePlayer@ plr ) {
 	
 	PlayerState@ pstate = getPlayerState(plr);
 	pstate.lastJoinTime = g_Engine.time;
+	
+	do_model_swaps();
+}
 
+HookReturnCode ClientLeave(CBasePlayer@ plr) {
+	g_Scheduler.SetTimeout("do_model_swaps", 0.5f, EHandle(plr));
 	return HOOK_CONTINUE;
 }
 
@@ -158,24 +200,6 @@ HookReturnCode MapChange() {
 		addPlayerModel(g_PlayerFuncs.FindPlayerByIndex(i));
 	}
 
-	return HOOK_CONTINUE;
-}
-
-HookReturnCode PlayerEnteredObserver( CBasePlayer@ plr ) {
-	CBaseEntity@ ent = null;
-	do {
-		@ent = g_EntityFuncs.FindEntityByClassname(ent, "deadplayer"); 
-		if (ent !is null) {
-			CustomKeyvalues@ pCustom = ent.GetCustomKeyvalues();
-			CustomKeyvalue ownerKey( pCustom.GetKeyvalue( "$i_hipoly_owner" ) );
-			
-			if (!ownerKey.Exists()) {
-				pCustom.SetKeyvalue("$i_hipoly_owner", plr.entindex());
-				println("Set owner for corpse! " + ent.pev.classname);
-			}
-		}
-	} while (ent !is null);
-	
 	return HOOK_CONTINUE;
 }
 
@@ -271,6 +295,8 @@ class PlayerModelInfo {
 	string desiredModel;
 	int desiredPolys;
 	int replacePolys;
+	string steamid;
+	bool canReplace;
 	
 	Replacement currentReplacement;
 	
@@ -324,163 +350,74 @@ class PlayerModelInfo {
 	}
 }
 
-bool isPlayerVisible(Vector lookerOrigin, Vector lookDirection, CBaseEntity@ plr) {
-	if ((plr.pev.effects & EF_NODRAW) == 0 && (plr.pev.rendermode == 0 || plr.pev.renderamt > 0)) {
-		Vector delta = (plr.pev.origin - lookerOrigin).Normalize();
-		
-		// check if player is in fov of the looker (can't actually check the fov of a player so this assumes 180 degrees)
-		bool isVisible = DotProduct(delta, g_Engine.v_forward) > 0.0;
-		
-		if (isVisible) {
-			return true;
-		}
-	}
-	
-	return false;
-}
-
-array<PlayerModelInfo> get_visible_players(CBasePlayer@ looker, int&out totalPolys, int&out totalPlayers) {	
-	Math.MakeVectors( looker.pev.v_angle );
-	Vector lookerOrigin = looker.pev.origin - g_Engine.v_forward * 128; // assume chasecam is on
-	
+array<PlayerModelInfo> get_visible_players(int&out totalPolys, int&out totalPlayers) {		
 	array<PlayerModelInfo> pvsPlayerInfos;
-	array<CBaseEntity@> pvsPlayers;
-	bool canSeeAnyPlayers = false;
-	
-	//edict_t@ edt = @g_EngineFuncs.EntitiesInPVS(@g_EntityFuncs.Instance(0).edict()); // useless, see HLEnhanced comment
-	edict_t@ edt = @g_EngineFuncs.EntitiesInPVS(@looker.edict());
-	
-	while (edt !is null)
-	{
-		CBaseEntity@ ent = g_EntityFuncs.Instance( edt );
-		if (ent is null) {
-			break;
-		}
-		@edt = @ent.pev.chain;
-		
-		CBasePlayer@ plr = cast<CBasePlayer@>(ent);
-		
-		if (plr !is null && plr.IsConnected() && !plr.GetObserver().IsObserver()) {
-			canSeeAnyPlayers = true;
-			pvsPlayers.insertLast(ent);
-		} else if (string(ent.pev.classname) == "deadplayer") {
-			pvsPlayers.insertLast(ent);
-		}
-		else if (string(ent.pev.targetname).Find("plugin_ghost_cam_") == 0 and string(ent.pev.model) != "models/as_ghosts/camera.mdl") {
-			if (isGhostVisible(ent, looker)) {
-				pvsPlayers.insertLast(ent);
-			}
-		}
-	}
-	
-	if (!canSeeAnyPlayers) {
-		// map has no VIS info, so assume everyone is in the PVS
-		// for reason corpses will still be added to the pvs list properly, so no need to add those too
-		for ( int i = 1; i <= g_Engine.maxClients; i++ ) {		
-			CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
-			
-			if (plr is null or !plr.IsConnected() or plr.GetObserver().IsObserver())
-				continue;
-			
-			pvsPlayers.insertLast(plr);
-		}
-	}
 	
 	totalPolys = 0;
-	for (uint i = 0; i < pvsPlayers.size(); i++) {
-		CBaseEntity@ plr = pvsPlayers[i];
+	
+	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {		
+		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
 		
-		if (isPlayerVisible(lookerOrigin, g_Engine.v_forward, plr)) {
-			PlayerModelInfo info;
-			CBaseEntity@ modelPlr = plr;
+		if (plr is null or !plr.IsConnected() or plr.GetObserver().IsObserver())
+			continue;
 		
-			// if this is a body, find who owns it
-			if (string(plr.pev.classname) == "deadplayer") {
-				CustomKeyvalues@ pCustom = plr.GetCustomKeyvalues();
-				CustomKeyvalue ownerKey( pCustom.GetKeyvalue( "$i_hipoly_owner" ) );
-				bool hasOwner = false;
-				
-				if (ownerKey.Exists()) {
-					CBasePlayer@ owner = g_PlayerFuncs.FindPlayerByIndex(ownerKey.GetInteger());
-					
-					if (owner !is null and owner.IsConnected()) {
-						@info.owner = @owner;
-						@modelPlr = @owner;
-						hasOwner = true;
-					}
-				}
-				if (!hasOwner) {
-					println("Failed to find owner for corpse");
-				}
-			}
-			if (string(plr.pev.targetname).Find("plugin_ghost_cam_") == 0) {
-				CBasePlayer@ owner = g_PlayerFuncs.FindPlayerByIndex(plr.pev.iuser2);
-				if (owner !is null) {
-					@info.owner = @owner;
-					@modelPlr = @owner;
-				} else {
-					println("Failed to find owner for ghost");
-				}
-			}
-		
-			@info.ent = @plr;
-			info.desiredModel = getDesiredModel(modelPlr);
-			info.desiredPolys = getModelPolyCount(modelPlr, info.desiredModel);
-			info.replacePolys = info.desiredPolys;
-			info.currentReplacement.h_ent = EHandle(info.ent);
-			info.currentReplacement.h_owner = EHandle(info.getOwner());	
-			pvsPlayerInfos.insertLast(info);
-			totalPolys += info.desiredPolys;
-		}
+		PlayerModelInfo info;
+		@info.ent = @plr;
+		info.desiredModel = getDesiredModel(plr);
+		info.desiredPolys = getModelPolyCount(plr, info.desiredModel);
+		info.replacePolys = info.desiredPolys;
+		info.currentReplacement.h_ent = EHandle(plr);
+		info.currentReplacement.h_owner = EHandle(plr);
+		info.steamid = g_EngineFuncs.GetPlayerAuthId(plr.edict()).ToLowercase();
+		pvsPlayerInfos.insertLast(info);
+		totalPolys += info.desiredPolys;
 	}
 	
-	totalPlayers = pvsPlayers.size();
+	CBaseEntity@ ent = null;
+	do {
+		@ent = g_EntityFuncs.FindEntityByTargetname(ent, "plugin_ghost_cam_*");
+		
+		if (ent is null or string(ent.pev.model) == "models/as_ghosts/camera.mdl") {
+			continue;
+		}
+		
+		CBasePlayer@ owner = g_PlayerFuncs.FindPlayerByIndex(ent.pev.iuser2);
+		
+		if (owner is null) {
+			continue;
+		}
+	
+		PlayerModelInfo info;
+		@info.ent = @ent;
+		info.desiredModel = getDesiredModel(owner);
+		info.desiredPolys = getModelPolyCount(owner, info.desiredModel);
+		info.replacePolys = info.desiredPolys;
+		info.currentReplacement.h_ent = EHandle(ent);
+		info.currentReplacement.h_owner = EHandle(owner);
+		info.steamid = g_EngineFuncs.GetPlayerAuthId(owner.edict()).ToLowercase();
+		pvsPlayerInfos.insertLast(info);
+		totalPolys += info.desiredPolys;
+	} while (ent !is null);
+	
+	totalPlayers = pvsPlayerInfos.size();
 	
 	return pvsPlayerInfos;
 }
 
-void reset_models(CBasePlayer@ forPlayer=null) {
+void reset_models(CBasePlayer@ forPlayer) {
 	if (forPlayer !is null) {
-		int eidx = forPlayer.entindex();
-		
-		for (uint i = 0; i < g_replacements[eidx].size(); i++) {
-			CBaseEntity@ replaceEnt = g_replacements[eidx][i].h_ent;
-			if (replaceEnt is null) {
-				continue;
-			}
-			
-			if (replaceEnt.pev.classname == "cycler") {
-				GhostReplace@ ghostCopy = getGhostCopy(replaceEnt);
-				ghostCopy.setLod(forPlayer, LOD_HD);
-			} else {
-				CBasePlayer@ owner = cast<CBasePlayer@>(g_replacements[eidx][i].h_owner.GetEntity());
-				if (owner !is null) {
-					UserInfo(owner).send(forPlayer);
-				}
-			}
-		}
-		
-		g_replacements[forPlayer.entindex()].resize(0);
-	}
-	else {
 		for ( int i = 1; i <= g_Engine.maxClients; i++ )
 		{
 			CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
 			if (plr is null or !plr.IsConnected())
 				continue;
 			
-			UserInfo(plr).broadcast();
+			UserInfo(plr).send(forPlayer);
 		}
-		
+	
 		for (uint i = 0; i < g_ghostCopys.size(); i++) {
-			g_EntityFuncs.Remove(g_ghostCopys[i].ghostSD);
-			g_EntityFuncs.Remove(g_ghostCopys[i].ghostLD);
-			g_EntityFuncs.Remove(g_ghostCopys[i].ghostRenderSD);
-			g_EntityFuncs.Remove(g_ghostCopys[i].ghostRenderLD);
+			g_ghostCopys[i].setLod(forPlayer, LOD_HD);
 		}
-		
-		g_replacements.resize(0);
-		g_replacements.resize(33);
 	}
 }
 
@@ -515,249 +452,162 @@ int getModelPolyCount(CBaseEntity@ plr, string model) {
 }
 
 // flags models near this player which should be replaced with low poly models
-void replace_highpoly_models(CBasePlayer@ looker, array<bool>@ g_forceUpdateClients) {	
+void replace_highpoly_models(CBasePlayer@ looker, array<PlayerModelInfo>@ playerEnts, int totalPolys) {	
 	PlayerState@ state = getPlayerState(looker);
 	
-	if (state.prefersHighPoly and state.debug == 0) {
+	if (state.prefersHighPoly or state.modelSwapAll) {
 		return; // player doesn't care if there are too many high-poly models on screen
 	}
 
-	int totalPolys = 0;
-	int totalPlayers = 0;
-	array<PlayerModelInfo> pvsPlayers = get_visible_players(looker, totalPolys, totalPlayers);
 	int maxAllowedPolys = state.polyLimit;
 	int reducedPolys = totalPolys;
-	array<Replacement> oldReplacements;
 	int lookeridx = looker.entindex();
 	
-	for (uint i = 0; i < g_replacements[lookeridx].size(); i++) {
-		oldReplacements.insertLast(g_replacements[lookeridx][i]);
+	// reset vars to default because the array is shared with all players
+	for (uint i = 0; i < playerEnts.size(); i++) {
+		playerEnts[i].currentReplacement.lod = LOD_HD;
+		playerEnts[i].replacePolys = playerEnts[i].desiredPolys;
+		playerEnts[i].canReplace = !state.modelSwaps.exists(playerEnts[i].steamid);		
 	}
 	
 	// Pick an LOD for ents in the PVS
-	if (pvsPlayers.size() > 0 && totalPolys > maxAllowedPolys && !state.prefersHighPoly) {
+	if (playerEnts.size() > 0 && totalPolys > maxAllowedPolys && !state.prefersHighPoly) {
 		
 		// SD pass. Do replacements from HD -> SD, but only if the model has an SD replacement.
 		// Sort by poly count to replace highest polycount models first
-		pvsPlayers.sort(function(a,b) { return a.desiredPolys > b.desiredPolys; });
-		for (uint i = 0; i < pvsPlayers.size() && reducedPolys > maxAllowedPolys; i++) {		
-			if (!pvsPlayers[i].hasOwner() or !pvsPlayers[i].canReplaceSd()) {
+		playerEnts.sort(function(a,b) { return a.desiredPolys > b.desiredPolys; });
+		for (uint i = 0; i < playerEnts.size() && reducedPolys > maxAllowedPolys; i++) {		
+			if (!playerEnts[i].hasOwner() or !playerEnts[i].canReplace or !playerEnts[i].canReplaceSd()) {
 				continue;
 			}
 			
-			pvsPlayers[i].currentReplacement.lod = LOD_SD;
-			pvsPlayers[i].replacePolys = pvsPlayers[i].getReplacementPolys(true);
+			playerEnts[i].currentReplacement.lod = LOD_SD;
+			playerEnts[i].replacePolys = playerEnts[i].getReplacementPolys(true);
 			
-			reducedPolys -= pvsPlayers[i].desiredPolys - pvsPlayers[i].replacePolys;
+			reducedPolys -= playerEnts[i].desiredPolys - playerEnts[i].replacePolys;
 		}
 		
 		// LD pass. Aggressively set to LD even if the model doesn't have an LD replacement.
 		// Sort by polys again now that the SD pass has changed poly counts for each player
-		pvsPlayers.sort(function(a,b) { return a.replacePolys > b.replacePolys; });
-		for (uint i = 0; i < pvsPlayers.size() && reducedPolys > maxAllowedPolys; i++) {
-			if (!pvsPlayers[i].hasOwner()) {
+		playerEnts.sort(function(a,b) { return a.replacePolys > b.replacePolys; });
+		for (uint i = 0; i < playerEnts.size() && reducedPolys > maxAllowedPolys; i++) {
+			if (!playerEnts[i].hasOwner() or !playerEnts[i].canReplace) {
 				continue;
 			}
 			
 			// poly reduction doesn't stack. Undo the reduction from the SD pass.
-			reducedPolys += pvsPlayers[i].desiredPolys - pvsPlayers[i].replacePolys; // 0 if no SD replacement was made
+			reducedPolys += playerEnts[i].desiredPolys - playerEnts[i].replacePolys; // 0 if no SD replacement was made
 			
-			pvsPlayers[i].currentReplacement.lod = LOD_LD;
-			pvsPlayers[i].replacePolys = pvsPlayers[i].getReplacementPolys(false);
+			playerEnts[i].currentReplacement.lod = LOD_LD;
+			playerEnts[i].replacePolys = playerEnts[i].getReplacementPolys(false);
 			
 			// now apply the LD poly reduction
-			reducedPolys -= pvsPlayers[i].desiredPolys - pvsPlayers[i].replacePolys;
+			reducedPolys -= playerEnts[i].desiredPolys - playerEnts[i].replacePolys;
 		}
 		
 		// SD undo pass. Try to undo some SD model replacements, if an LD replacement freed up enough polys
 		// Undo replacements for the lowest poly models first
-		pvsPlayers.sort(function(a,b) { return a.replacePolys < b.replacePolys; });
-		for (uint i = 0; i < pvsPlayers.size() && reducedPolys < maxAllowedPolys; i++) {
-			if (!pvsPlayers[i].hasOwner() or pvsPlayers[i].currentReplacement.lod != LOD_SD) {
+		playerEnts.sort(function(a,b) { return a.replacePolys < b.replacePolys; });
+		for (uint i = 0; i < playerEnts.size() && reducedPolys < maxAllowedPolys; i++) {
+			if (!playerEnts[i].hasOwner() or !playerEnts[i].canReplace or playerEnts[i].currentReplacement.lod != LOD_SD) {
 				continue;
 			}
 			
-			int polysToAdd = pvsPlayers[i].desiredPolys - pvsPlayers[i].replacePolys;
+			int polysToAdd = playerEnts[i].desiredPolys - playerEnts[i].replacePolys;
 			
 			if (reducedPolys + polysToAdd > maxAllowedPolys) {
 				continue;
 			}
 
-			pvsPlayers[i].currentReplacement.lod = LOD_HD;
-			pvsPlayers[i].replacePolys = pvsPlayers[i].desiredPolys;
+			playerEnts[i].currentReplacement.lod = LOD_HD;
+			playerEnts[i].replacePolys = playerEnts[i].desiredPolys;
 			
 			reducedPolys += polysToAdd;
 		}
 	}
 	
-	g_replacements[lookeridx].resize(0);
-	g_replacements[lookeridx].resize(pvsPlayers.size());
-	for (uint i = 0; i < pvsPlayers.size(); i++) {
-		g_replacements[lookeridx][i] = pvsPlayers[i].currentReplacement;
-	}
-	
-	// update LOD for ents in the PVS
-	for (uint i = 0; i < g_replacements[lookeridx].size(); i++) {
-		Replacement@ replacement = g_replacements[lookeridx][i];
+	// set LOD models on players/corpses/ghosts
+	for (uint i = 0; i < playerEnts.size(); i++) {
+		Replacement@ replacement = playerEnts[i].currentReplacement;
 		CBaseEntity@ replaceEnt = replacement.h_ent;
 		CBaseEntity@ replaceOwner = replacement.h_owner;
 		
-		if (replaceEnt is null or replaceOwner is null) {
+		if (replaceEnt is null or replaceOwner is null or !playerEnts[i].canReplace) {
 			continue;
 		}
-		
-		int currentLod = replacement.lod;
-		int oldLod = LOD_HD;
-		
-		bool foundOld = false;
-		for (uint k = 0; k < oldReplacements.size(); k++) {
-			CBaseEntity@ oldReplaceEnt = oldReplacements[k].h_ent;
-			if (oldReplaceEnt is null) {
-				continue;
-			}
-			if (oldReplaceEnt.entindex() == replaceEnt.entindex()) {
-				oldLod = oldReplacements[k].lod;
-				oldReplacements[k].lod = -1; // special value that means this oldReplacement is still tracked
-				foundOld = true;
-				break;
-			}
-		}
-		
-		bool playerModelUpdated = g_forceUpdateClients[replaceOwner.entindex()];
-		
-		if (oldLod != currentLod or playerModelUpdated) {
-			//println("UPDATE " + replaceEnt.pev.classname + " " + replaceOwner.pev.netname + " " + currentLod);
 			
-			if (replaceEnt.IsPlayer() or replaceEnt.pev.classname == "deadplayer") {
-				// player and deadplayer entity models are replaced via UserInfo messages
-				CBasePlayer@ plr = cast<CBasePlayer@>(replaceOwner);
-				string model = getLodModel(plr, currentLod);
-				UserInfo info(plr);
-				info.model = model;
-				info.send(looker);
-			} else {
-				// ghost models are replaced by creating new LOD copies that are only visible to certain players
-				GhostReplace@ ghostCopy = getGhostCopy(replaceEnt);
-				ghostCopy.setLod(looker, currentLod);
-			}
+		if (replaceEnt.IsPlayer()) {
+			// player and deadplayer entity models are replaced via UserInfo messages
+			CBasePlayer@ plr = cast<CBasePlayer@>(replaceOwner);
+			string model = getLodModel(plr, replacement.lod);
+			UserInfo info(plr);
+			info.model = model;
+			info.send(looker);
+		} else {
+			// ghost models are replaced by creating new LOD copies that are only visible to certain players
+			GhostReplace@ ghostCopy = getGhostCopy(replaceEnt);
+			ghostCopy.setLod(looker, replacement.lod);
 		}
 	}
-	
-	// revert LOD for ents that are no longer in the PVS
-	for (uint i = 0; i < oldReplacements.size(); i++) {
-		Replacement@ replacement = oldReplacements[i];
-		CBaseEntity@ replaceEnt = replacement.h_ent;
-		CBaseEntity@ replaceOwner = replacement.h_owner;
-		
-		if (replaceEnt is null or replaceOwner is null) {
-			continue;
-		}
-		
-		if (oldReplacements[i].lod != -1) {
-			//println("REVERT " + replaceEnt.pev.classname + " " + replaceOwner.pev.netname);
-			
-			if (replaceEnt.IsPlayer() or replaceEnt.pev.classname == "deadplayer") {
-				// player and deadplayer entity models are replaced via UserInfo messages
-				CBasePlayer@ plr = cast<CBasePlayer@>(replaceOwner);
-				string model = getLodModel(plr, LOD_HD);
-				UserInfo info(plr);
-				info.model = model;
-				info.send(looker);
-			} else {
-				// ghost models are replaced by creating new LOD copies that are only visible to certain players
-				GhostReplace@ ghostCopy = getGhostCopy(replaceEnt);
-				ghostCopy.setLod(looker, LOD_HD);
-			}
-		}
-	}
-	
-	state.debugPolys = totalPolys;
-	state.debugReducedPolys = reducedPolys;
-	state.debugVisiblePlayers = pvsPlayers.size();
-	state.debugTotalPlayers = totalPlayers;
 }
 
-void debug(CBasePlayer@ plr) {
-	PlayerState@ state = getPlayerState(plr);
+// do .modelswap swaps
+void do_modelswap_swaps(CBasePlayer@ looker, array<PlayerModelInfo>@ playerEnts) {
+	PlayerState@ state = getPlayerState(looker);
+	
+	if (!state.modelSwapAll and state.modelSwaps.empty()) {
+		return;
+	}
+	
+	for (uint i = 0; i < playerEnts.size(); i++) {
+		Replacement@ replacement = playerEnts[i].currentReplacement;
+		CBaseEntity@ replaceEnt = replacement.h_ent;
+		CBaseEntity@ replaceOwner = replacement.h_owner;
 		
-	if (state.debug > 0) {
-		HUDTextParams params;
-		params.effect = 0;
-		params.fadeinTime = 0;
-		params.fadeoutTime = 0.1;
-		params.holdTime = 1.5f;
-		
-		params.x = -1;
-		params.y = 0.99;
-		params.channel = 1;
-		
-		string info = "Players models: " + state.debugVisiblePlayers + " / " + state.debugTotalPlayers;
-		info += "\nPolys: " + formatInteger(state.debugPolys);
-		if (state.debugPolys != state.debugReducedPolys)
-			info += " --> " + formatInteger(state.debugReducedPolys);
-		info += "\nReplaced: ";
-		
-		int eidx = plr.entindex();
-		bool anyReplaced = false;
-		
-		for (uint i = 0; i < g_replacements[eidx].size(); i++) {
-			int lod = g_replacements[eidx][i].lod;
-			if (lod == LOD_HD) {
-				continue;
-			}
+		if (replaceEnt is null or replaceOwner is null or replaceEnt.entindex() == looker.entindex()) {
+			continue;
+		}
 			
-			CBaseEntity@ target = g_replacements[eidx][i].h_ent;
-			CBaseEntity@ owner = g_replacements[eidx][i].h_owner;
-			if (target is null)
-				continue;
-
-			if (state.debug > 1) {
-				Vector lookerPos = plr.pev.origin + plr.pev.view_ofs - Vector(0,0,5);
-				Vector targetPos = target.pev.origin;
+		if (replaceEnt.IsPlayer()) {
+			// player and deadplayer entity models are replaced via UserInfo messages
+			CBasePlayer@ plr = cast<CBasePlayer@>(replaceOwner);
+			
+			if (state.modelSwapAll) {
+				UserInfo info(plr);
+				info.model = state.modelSwapAllModel;
+				info.send(looker);
+			}
+			else if (state.modelSwaps.exists(playerEnts[i].steamid)) {
+				string swap;
+				state.modelSwaps.get(playerEnts[i].steamid, swap);
 				
-				Color color = lod == LOD_SD ? YELLOW : RED;
-				te_beampoints(lookerPos, targetPos, "sprites/laserbeam.spr", 0, 0, 1, 2, 0, color, 32, MSG_ONE_UNRELIABLE, plr.edict());
+				UserInfo info(plr);
+				info.model = swap;
+				info.send(looker);
 			}
-			
-			if (anyReplaced) {
-				info += ", ";
+		} else {
+			// TODO: use a camera model to differentiate between hipoly swaps and personal swaps.
+			// ideally the ghost model would be set to the model requested with .modelswap but
+			// that would mean creating 32 copies of a ghost entity, for every player. that's
+			// not worth the performance hit.
+			if (state.modelSwapAll or state.modelSwaps.exists(playerEnts[i].steamid)) {
+				GhostReplace@ ghostCopy = getGhostCopy(replaceEnt);
+				ghostCopy.setLod(looker, LOD_LD);
 			}
-			info += getDesiredModel(owner) + " " + (lod == LOD_SD ? "(SD)" : "(LD)");
-			anyReplaced = true;
 		}
-		
-		if (!anyReplaced) {
-			info += "none";
-		}
-		
-		if (info.Length() > 300) {
-			info = info.SubString(0, 297) + "...";
-		}
-		
-		g_PlayerFuncs.HudMessage(plr, params, info);
 	}
 }
 
-void update_models() {
+void check_if_swaps_needed() {
 	if (g_paused) {
 		return;
 	}
 	
-	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {		
-		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
-		
-		if (plr is null or !plr.IsConnected())
-			continue;
-		
-		replace_highpoly_models(plr, g_forceUpdateClients);	
-		debug(plr);
-	}
+	bool shouldDoSwaps = false;
 	
 	// check if any players updated settings which would undo per-client model replacements
 	// this happens in the next loop because there needs to be a delay to ensure models are replaced
-	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {
-		g_forceUpdateClients[i] = false;
-		
+	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {		
 		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
 		
 		if (plr is null or !plr.IsConnected())
@@ -767,11 +617,36 @@ void update_models() {
 		string userInfo = UserInfo(plr).infoString();
 		
 		if (isObserver != g_wasObserver[i] || userInfo != g_cachedUserInfo[plr.entindex()]) {
-			g_forceUpdateClients[i] = true;
+			shouldDoSwaps = true;
 		}
 		
 		g_cachedUserInfo[plr.entindex()] = userInfo;
 		g_wasObserver[i] = isObserver;
+	}
+	
+	if (shouldDoSwaps) {
+		do_model_swaps();
+	}
+}
+
+void do_model_swaps(CBasePlayer@ forPlayer=null) {
+	int totalPolys;
+	int totalPlayers;
+	array<PlayerModelInfo> playerEnts = get_visible_players(totalPolys, totalPlayers);
+	
+	if (forPlayer is null) {
+		for ( int i = 1; i <= g_Engine.maxClients; i++ ) {		
+			CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
+			
+			if (plr is null or !plr.IsConnected())
+				continue;
+			
+			replace_highpoly_models(plr, playerEnts, totalPolys);
+			do_modelswap_swaps(plr, playerEnts);
+		}
+	} else {
+		replace_highpoly_models(forPlayer, playerEnts, totalPolys);	
+		do_modelswap_swaps(forPlayer, playerEnts);
 	}
 }
 
@@ -903,6 +778,38 @@ void list_model_polys(CBasePlayer@ plr) {
 	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'Safe model polys = ' + formatInteger(perPlayerLimit) + '    (models below this limit will never be replaced)\n\n');
 }
 
+// find a player by name or partial name
+CBasePlayer@ getPlayerByName(CBasePlayer@ caller, string name) {
+	name = name.ToLowercase();
+	int partialMatches = 0;
+	CBasePlayer@ partialMatch;
+	CBaseEntity@ ent = null;
+	do {
+		@ent = g_EntityFuncs.FindEntityByClassname(ent, "player");
+		if (ent !is null) {
+			CBasePlayer@ plr = cast<CBasePlayer@>(ent);
+			string plrName = string(plr.pev.netname).ToLowercase();
+			if (plrName == name)
+				return plr;
+			else if (plrName.Find(name) != uint(-1))
+			{
+				@partialMatch = plr;
+				partialMatches++;
+			}
+		}
+	} while (ent !is null);
+	
+	if (partialMatches == 1) {
+		return partialMatch;
+	} else if (partialMatches > 1) {
+		g_PlayerFuncs.SayText(caller, '[ModelSwap] Swap failed. There are ' + partialMatches + ' players that have "' + name + '" in their name. Be more specific.\n');
+	} else {
+		g_PlayerFuncs.SayText(caller, '[ModelSwap] Swap failed. There is no player named "' + name + '".\n');
+	}
+	
+	return null;
+}
+
 bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=false) {
 	PlayerState@ state = getPlayerState(plr);
 	bool isAdmin = g_PlayerFuncs.AdminLevel(plr) >= ADMIN_YES;
@@ -913,30 +820,89 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 			list_model_polys(plr);
 			return true;
 		}
-		else if (args[0] == ".debugpoly") {
-			if (args.ArgC() > 1) {
-				int arg = atoi(args[1]);
-				state.debug = arg;
-			} else {
-				state.debug = state.debug > 0 ? 0 : 2;
-			}
-			string mode = "DISABLED";
-			if (state.debug == 1) {
-				mode = "ENABLED";
-			} else if (state.debug > 1) {
-				mode = "ENABLED (with lasers)";
+		else if (args[0] == ".modelswap") {
+			if (args.ArgC() == 1) {
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, "Force other players to use a model of your choice with this commands:\n");
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, "    .modelswap [player] [model]\n");
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, "[player] can be a Steam ID or incomplete name. Type \\ to target all players.\n");
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, "[model] is the name of a model. Omit this to toggle/cancel a model swap.\n");
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, "Model swaps are visible only to you.\n");
+				return true;
 			}
 			
-			g_PlayerFuncs.SayText(plr, 'Poly count debug mode ' + mode + '\n');
+			string nicename;
+			string targetid = args[1].ToLowercase();
+			bool allPlayers = false;
+			
+			if (targetid.Find("\\") == 0) {
+				allPlayers = true;
+			}
+			else if (targetid.Find("steam_0:") == 0) {
+				nicename = targetid;
+				nicename.ToUppercase();
+			} else {
+				CBasePlayer@ target = getPlayerByName(plr, targetid);
+				
+				if (target is null) {
+					return true;
+				}
+				if (target.entindex() == plr.entindex()) {
+					g_PlayerFuncs.SayText(plr, "[ModelSwap] Can't modelswap yourself.\n");
+					return true;
+				}	
+				
+				targetid = g_EngineFuncs.GetPlayerAuthId(target.edict());
+				targetid = targetid.ToLowercase();
+				nicename = target.pev.netname;
+			}
+			
+			string newmodel = defaultLowpolyModel;
+			if (args.ArgC() > 2) {
+				newmodel = args[2];
+			}
+			bool shouldUnswap = args.ArgC() == 2;
+			
+			if (shouldUnswap and state.modelSwapAll) {
+				state.modelSwapAll = false;
+				state.modelSwapAllModel = "";
+				state.modelSwaps.clear();
+				reset_models(plr);
+				do_model_swaps(plr);
+				g_PlayerFuncs.SayText(plr, "[ModelSwap] Cancelled model swaps on all players.\n");
+			}
+			else if (allPlayers) {
+				state.modelSwapAll = true;
+				state.modelSwapAllModel = newmodel;
+				state.modelSwaps.clear();
+				do_model_swaps(plr);
+				g_PlayerFuncs.SayText(plr, "[ModelSwap] Set model \"" + newmodel + "\" on all players.\n");
+			} else {
+				if (shouldUnswap and state.modelSwaps.exists(targetid)) {
+					state.modelSwapAll = false;
+					state.modelSwapAllModel = "";
+					state.modelSwaps.delete(targetid);
+					reset_models(plr);
+					do_model_swaps(plr);
+					g_PlayerFuncs.SayText(plr, "[ModelSwap] Cancelled model swap on player \"" + nicename + "\".\n");
+				} else {
+					state.modelSwapAll = false;
+					state.modelSwapAllModel = "";
+					state.modelSwaps[targetid] = newmodel;
+					do_model_swaps(plr);
+					g_PlayerFuncs.SayText(plr, "[ModelSwap] Set model \"" + newmodel + "\" on player \"" + nicename + "\".\n");
+				}
+			}	
+	
 			return true;
 		}
 		else if (args[0] == ".limitpoly") {
 			float arg = Math.min(atof(args[1]), 1000);
-			state.polyLimit = Math.max(int(arg*1000), defaultLowpolyModelPolys*g_Engine.maxClients);
-			if (!state.prefersHighPoly) {
+			state.polyLimit = Math.max(int(arg*1000), 0);
+			if (state.prefersHighPoly) {
 				state.prefersHighPoly = false;
 			}
-			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCENTER, "Max player polys: " + formatInteger(state.polyLimit) + "\n");
+			do_model_swaps(plr);
+			g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCENTER, "Max model polys: " + formatInteger(state.polyLimit) + ".\n");
 			return true;
 		}
 		else if (args[0] == ".hipoly") {
@@ -953,9 +919,11 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 				}
 				if (state.prefersHighPoly) {
 					reset_models(plr);
+					do_model_swaps(plr);
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCENTER, "Max player polys: Unlimited\n");
 				}
 				else {
+					do_model_swaps(plr);
 					g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCENTER, "Max player polys: " + formatInteger(state.polyLimit) + "\n");
 				}
 				return true;
@@ -975,7 +943,7 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '------------------------------Too Many Polys Plugin------------------------------\n\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'This plugin replaces high-poly player models with low-poly versions to improve FPS.\n');
 				
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nModels are replaced in order from most to least polygons, until the visible \n');
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nModels are replaced in order from most to least polygons, until the total player \n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, 'polygon count is below a limit that you set.\n');
 				
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nLooking for models with a low poly count? Try here:\n');
@@ -985,13 +953,7 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".hipoly [0/1/toggle]" to toggle model replacement on/off.\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".limitpoly X" to change the polygon limit (X = poly count, in thousands).\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".listpoly" to list each player\'s desired model and polygon count.\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".debugpoly [0/1/2]" to show:\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        - How many player model polys the server thinks you can see.\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        - List of players who are having their models replaced\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '        - Lasers showing which models are replaced (mode 2 only)\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '              No line = HD model (not replaced)\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '              Yellow  = SD model\n');
-				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '              Red     = LD model\n');
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Type ".modelswap" to force other players to use a model of your choice, ignoring polygon count.\n');
 				
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '\nStatus:\n');
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTCONSOLE, '    Your preference is for ' + (state.prefersHighPoly ? "high-poly" : "low-poly") +' models.\n');
@@ -1040,6 +1002,7 @@ CClientCommand _hipoly("hipoly", "Too Many Polys command", @consoleCmd );
 CClientCommand _listpoly("listpoly", "Too Many Polys command", @consoleCmd );
 CClientCommand _debugpoly("debugpoly", "Too Many Polys command", @consoleCmd );
 CClientCommand _polylimit("limitpoly", "Too Many Polys command", @consoleCmd );
+CClientCommand _modelswap("modelswap", "Too Many Polys command", @consoleCmd );
 
 void consoleCmd( const CCommand@ args ) {
 	CBasePlayer@ plr = g_ConCommandSystem.GetCurrentPlayer();
