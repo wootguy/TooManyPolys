@@ -187,7 +187,7 @@ void post_join(EHandle h_plr) {
 	PlayerState@ pstate = getPlayerState(plr);
 	pstate.lastJoinTime = g_Engine.time;
 	
-	do_model_swaps();
+	do_model_swaps(EHandle(null));
 }
 
 HookReturnCode ClientLeave(CBasePlayer@ plr) {
@@ -625,11 +625,13 @@ void check_if_swaps_needed() {
 	}
 	
 	if (shouldDoSwaps) {
-		do_model_swaps();
+		do_model_swaps(EHandle(null));
 	}
 }
 
-void do_model_swaps(CBasePlayer@ forPlayer=null) {
+void do_model_swaps(EHandle h_plr) {
+	CBasePlayer@ forPlayer = cast<CBasePlayer@>(h_plr.GetEntity());
+	
 	int totalPolys;
 	int totalPlayers;
 	array<PlayerModelInfo> playerEnts = get_visible_players(totalPolys, totalPlayers);
