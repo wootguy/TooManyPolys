@@ -108,6 +108,7 @@ void PluginInit() {
 	g_Hooks.RegisterHook( Hooks::Player::ClientSay, @ClientSay );
 	g_Hooks.RegisterHook( Hooks::Player::ClientPutInServer, @ClientJoin );
 	g_Hooks.RegisterHook( Hooks::Player::ClientDisconnect, @ClientLeave );
+	g_Hooks.RegisterHook( Hooks::Player::PlayerEnteredObserver, @PlayerEnteredObserver );
 	g_Hooks.RegisterHook( Hooks::Game::MapChange, @MapChange );
 	
 	@cvar_default_poly_limit = CCVar("default_poly_limit", 32000, "max player visble polys", ConCommandFlag::AdminOnly);
@@ -168,6 +169,24 @@ PlayerState@ getPlayerState(CBasePlayer@ plr) {
 HookReturnCode ClientJoin( CBasePlayer@ plr ) {	
 	g_Scheduler.SetTimeout("post_join", 0.5f, EHandle(plr));
 
+	return HOOK_CONTINUE;
+}
+
+HookReturnCode PlayerEnteredObserver( CBasePlayer@ plr ) {
+	CBaseEntity@ ent = null;
+	do {
+		@ent = g_EntityFuncs.FindEntityByClassname(ent, "deadplayer"); 
+		if (ent !is null) {
+			CustomKeyvalues@ pCustom = ent.GetCustomKeyvalues();
+			CustomKeyvalue ownerKey( pCustom.GetKeyvalue( "$i_hipoly_owner" ) );
+			
+			if (!ownerKey.Exists()) {
+				pCustom.SetKeyvalue("$i_hipoly_owner", plr.entindex());
+				println("Set owner for corpse! " + ent.pev.classname);
+			}
+		}
+	} while (ent !is null);
+	
 	return HOOK_CONTINUE;
 }
 
