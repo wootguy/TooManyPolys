@@ -48,6 +48,10 @@ class PlayerState {
 	int polyLimit = cvar_default_poly_limit.GetInt();
 	string lastNagModel = ""; // name of the model that the player was last nagged about
 	float lastJoinTime = 0;
+	int lagState;
+	float lastRefresh;
+	bool finishedRefresh = false;
+	bool wasLoaded = false;
 	
 	array<EHandle> refreshList; // player models to refresh, once they come into view
 	
@@ -81,7 +85,9 @@ CCVar@ cvar_default_poly_limit;
 dictionary g_player_states;
 
 const string defaultLowpolyModel = "player-10up";
+const string refreshModel = "ark"; // model swapped to when refreshing player models (should be small for fast loading)
 const string defaultLowpolyModelPath = "models/player/" + defaultLowpolyModel + "/" + defaultLowpolyModel + ".mdl";
+const string refreshModelPath = "models/player/" + refreshModel + "/" + refreshModel + ".mdl";
 const int defaultLowpolyModelPolys = 142;
 const int unknownModelPolys = 50000; // assume the worst (better not to risk lowering FPS)
 
@@ -118,6 +124,8 @@ void PluginInit() {
 	g_Scheduler.SetInterval("check_if_swaps_needed", 0.5, -1);
 	g_Scheduler.SetInterval("check_model_names", 1.0, -1);
 	g_Scheduler.SetInterval("update_ghost_models", 0.05, -1);
+	g_Scheduler.SetInterval("loadCrossPluginAfkState", 1.0f, -1);
+	g_Scheduler.SetInterval("fix_new_model_dl_bug", 0.2f, -1);
 	
 	loadPrecachedModels();
 }
@@ -146,6 +154,8 @@ void MapInit() {
 		g_wasObserver[i] = false;
 		g_cachedUserInfo[i] = "";
 	}
+	
+	g_refresh_idx = 0;
 }
 
 // Will create a new state if the requested one does not exit
@@ -166,7 +176,12 @@ PlayerState@ getPlayerState(CBasePlayer@ plr) {
 	return cast<PlayerState@>( g_player_states[steamId] );
 }
 
-HookReturnCode ClientJoin( CBasePlayer@ plr ) {	
+HookReturnCode ClientJoin( CBasePlayer@ plr ) {
+	PlayerState@ pstate = getPlayerState(plr);
+	pstate.lastJoinTime = g_Engine.time;
+	pstate.lastRefresh = -999;
+	pstate.refreshList.resize(0);
+	
 	g_Scheduler.SetTimeout("post_join", 0.5f, EHandle(plr));
 
 	return HOOK_CONTINUE;
@@ -190,6 +205,131 @@ HookReturnCode PlayerEnteredObserver( CBasePlayer@ plr ) {
 	return HOOK_CONTINUE;
 }
 
+void loadCrossPluginAfkState() {
+	CBaseEntity@ afkEnt = g_EntityFuncs.FindEntityByTargetname(null, "PlayerStatusPlugin");
+	
+	if (afkEnt is null) {
+		return;
+	}
+	
+	CustomKeyvalues@ customKeys = afkEnt.GetCustomKeyvalues();
+	
+	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {
+		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
+		
+		if (plr is null or !plr.IsConnected()) {
+			continue;
+		}
+		
+		PlayerState@ state = getPlayerState(plr);
+		
+		CustomKeyvalue key2 = customKeys.GetKeyvalue("$i_state" + i);
+
+		if (key2.Exists()) {
+			state.lagState = key2.GetInteger();
+			
+			if (state.lagState == 0 and !state.wasLoaded) {
+				for ( int k = 1; k <= g_Engine.maxClients; k++ ) {
+					CBasePlayer@ p = g_PlayerFuncs.FindPlayerByIndex(k);
+					
+					if (p is null or !p.IsConnected() or i == k) {
+						continue;
+					}
+					
+					state.refreshList.insertLast(p);
+					state.finishedRefresh = false;
+				}
+				
+				state.wasLoaded = true;
+			}
+		}
+	}
+}
+
+// swap all models with something else and back again to fix newly downloaded models appearing as the helmet model
+uint g_refresh_idx = 0;
+float refreshDelay = 0.5f;
+void fix_new_model_dl_bug() {	
+	int totalChecks = 0;
+	
+	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {
+		CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
+		
+		if (plr is null or !plr.IsConnected()) {
+			continue;
+		}		
+		
+		PlayerState@ state = getPlayerState(plr);
+		if (state.lagState != 0) {
+			continue;
+		}
+		
+		// don't refresh too fast in case player lags when loading a huge player model
+		if (g_Engine.time - state.lastRefresh < refreshDelay) {
+			continue;
+		}
+		
+		if (state.refreshList.size() == 0) {
+			if (!state.finishedRefresh) {
+				do_model_swaps(EHandle(plr));
+			}
+			state.finishedRefresh = true;
+			continue;
+		}
+		
+		// only do one check per player, per loop, to prevent lag
+		uint idx = g_refresh_idx % state.refreshList.size();
+
+		CBaseEntity@ target = state.refreshList[idx];
+		
+		if (target is null) {
+			state.refreshList.removeAt(idx);
+			continue;
+		}
+		
+		if (target.pev.effects & EF_NODRAW != 0) {
+			continue;
+		}
+	
+		TraceResult tr;
+		g_Utility.TraceLine(plr.pev.origin, target.pev.origin, ignore_monsters, plr.edict(), tr);
+		
+		if (tr.flFraction >= 1.0f) {
+			//g_PlayerFuncs.ClientPrint(plr, HUD_PRINTNOTIFY, "Refreshing player model for " + target.pev.netname + "\n");
+		
+			refresh_player_model(EHandle(plr), EHandle(target), false);
+			g_Scheduler.SetTimeout("refresh_player_model", 0.1f, EHandle(plr), EHandle(target), true);
+			
+			state.refreshList.removeAt(idx);
+			state.lastRefresh = g_Engine.time;
+		}
+	}
+	
+	g_refresh_idx++;
+}
+
+void refresh_player_model(EHandle h_looker, EHandle h_target, bool isPostSwap) {
+	CBasePlayer@ looker = cast<CBasePlayer@>(h_looker.GetEntity());
+	CBasePlayer@ target = cast<CBasePlayer@>(h_target.GetEntity());
+	
+	if (looker is null or target is null) {
+		return;
+	}
+	
+	UserInfo userInfo = UserInfo(target);
+	
+	if (isPostSwap) {
+		KeyValueBuffer@ pInfos = g_EngineFuncs.GetInfoKeyBuffer( target.edict() );
+		string currentModel = pInfos.GetValue( "model" ).ToLowercase();
+	
+		userInfo.model = currentModel;
+		userInfo.send(looker);
+	} else {
+		userInfo.model = refreshModel;
+		userInfo.send(looker);
+	}
+}
+
 void post_join(EHandle h_plr) {
 	CBasePlayer@ plr = cast<CBasePlayer@>(h_plr.GetEntity());
 	
@@ -203,8 +343,17 @@ void post_join(EHandle h_plr) {
 		g_ghostCopys[i].setLod(plr, LOD_HD);
 	}
 	
-	PlayerState@ pstate = getPlayerState(plr);
-	pstate.lastJoinTime = g_Engine.time;
+	for ( int i = 1; i <= g_Engine.maxClients; i++ ) {
+		CBasePlayer@ p = g_PlayerFuncs.FindPlayerByIndex(i);
+		
+		if (p is null or !p.IsConnected()) {
+			continue;
+		}
+		
+		PlayerState@ state = getPlayerState(p);
+		state.refreshList.insertLast(EHandle(plr));
+		state.finishedRefresh = false;
+	}
 	
 	do_model_swaps(EHandle(null));
 }
@@ -655,7 +804,7 @@ void do_model_swaps(EHandle h_plr) {
 	int totalPlayers;
 	array<PlayerModelInfo> playerEnts = get_visible_players(totalPolys, totalPlayers);
 	
-	if (forPlayer is null) {
+	if (forPlayer is null or !forPlayer.IsConnected()) {
 		for ( int i = 1; i <= g_Engine.maxClients; i++ ) {		
 			CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
 			
