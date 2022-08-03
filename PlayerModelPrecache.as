@@ -51,6 +51,7 @@ void precachePlayerModels() {
 	g_precachedModels.resize(0);
 	
 	g_Game.PrecacheModel(defaultLowpolyModelPath);
+	g_Game.PrecacheModel(refreshModelPath);
 
 	for ( uint i = 0; i < g_ModelList.length(); i++ ) {
 		string model = g_ModelList[i] + "/" + g_ModelList[i] + ".mdl";
