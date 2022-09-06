@@ -14,6 +14,17 @@ string g_last_precache_map = "";
 array<string> g_ModelList; // list of models to precache
 array<string> g_LastModelList; // list of models that were precached on the previous map
 
+const array<string> g_crash_model_list = {
+'axis2_s5',
+'tomb_rider',
+'white_suit',
+'axis2_s5_v2',
+'tomb_rider_v2',
+'white_suit_v2',
+'kz_rindo_swc',
+'vtuber_filian_sw'
+};
+
 void addPlayerModel(CBasePlayer@ plr) {
 	if (plr is null) {
 		return;
@@ -27,6 +38,10 @@ void addPlayerModel(CBasePlayer@ plr) {
 		if ( res < 0 ) {
 			string lowermodel = p_PlayerInfo.GetValue( "model" ).ToLowercase();
 			g_ModelList.insertLast( lowermodel );
+			
+			if (g_crash_model_list.find(lowermodel) != -1) {
+				return;
+			}
 			
 			if (g_model_list.exists(lowermodel)) { // also precache the low-poly versions
 				ModelInfo info = g_model_list.get(lowermodel);
@@ -78,13 +93,26 @@ void precachePlayerModels() {
 		}
 	}
 
-	// share the list of precached models with other plugins
-	dictionary keys;
-	keys["targetname"] = "TooManyPolys";
-	for ( uint i = 0; i < g_precachedModels.size(); i++ ) {
-		keys["$s_model" + i] = g_precachedModels[i];
+	{
+		// share the list of precached models with other plugins
+		dictionary keys;
+		keys["targetname"] = "TooManyPolys";
+		for ( uint i = 0; i < g_precachedModels.size(); i++ ) {
+			keys["$s_model" + i] = g_precachedModels[i];
+		}
+		g_EntityFuncs.CreateEntity( "info_target", keys, true );
 	}
-	g_EntityFuncs.CreateEntity( "info_target", keys, true );
+	
+	{
+		// TODO: update other plugins to use TooManyPolys list
+		dictionary keys;
+		keys["targetname"] = "PlayerModelPrecacheDyn";
+		for ( uint i = 0; i < g_precachedModels.size(); i++ ) {
+			keys["$s_model" + i] = g_precachedModels[i];
+		}
+		g_EntityFuncs.CreateEntity( "info_target", keys, true );
+	}
+	
 	
 	g_LastModelList = g_ModelList;
 	g_last_precache_map = g_Engine.mapname;

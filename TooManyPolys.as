@@ -5,22 +5,13 @@
 #include "util"
 
 // TODO:
-// - performance improvements?
-// - angles dont work while dead
 // - special characters in names mess up .listpoly table alignment
 // - replace knuckles models with 2d
 // - re-apply replacement when changing a userinfo setting
-// - poly count wrong when ghost model not precached
 // - constantly update ghost renders instead of adding special logic?
 // - show if model is precached in .listpoly
 // - ghost disappears in third person
-// - precache and force latest model if someone is using an alias or older versions that isnt on the server
 // - include hats in poly count calculation
-
-// can't reproduce:
-// - vis checks don't work sometimes:
-//   - only on map start? Not until everyone connected with non-0 ping?
-//   - only the spawn area? (hunger, rc_labyrinth)
 
 void print(string text) { g_Game.AlertMessage( at_console, text); }
 void println(string text) { print(text + "\n"); }
@@ -180,6 +171,7 @@ HookReturnCode ClientJoin( CBasePlayer@ plr ) {
 	PlayerState@ pstate = getPlayerState(plr);
 	pstate.lastJoinTime = g_Engine.time;
 	pstate.lastRefresh = -999;
+	pstate.wasLoaded = false;
 	pstate.refreshList.resize(0);
 	
 	g_Scheduler.SetTimeout("post_join", 0.5f, EHandle(plr));
@@ -280,9 +272,9 @@ void fix_new_model_dl_bug() {
 		// only do one check per player, per loop, to prevent lag
 		uint idx = g_refresh_idx % state.refreshList.size();
 
-		CBaseEntity@ target = state.refreshList[idx];
+		CBasePlayer@ target = cast<CBasePlayer@>(state.refreshList[idx].GetEntity());
 		
-		if (target is null) {
+		if (target is null or !target.IsConnected()) {
 			state.refreshList.removeAt(idx);
 			continue;
 		}
@@ -295,7 +287,8 @@ void fix_new_model_dl_bug() {
 		g_Utility.TraceLine(plr.pev.origin, target.pev.origin, ignore_monsters, plr.edict(), tr);
 		
 		if (tr.flFraction >= 1.0f) {
-			//g_PlayerFuncs.ClientPrint(plr, HUD_PRINTNOTIFY, "Refreshing player model for " + target.pev.netname + "\n");
+			//if (g_EngineFuncs.GetPlayerAuthId(plr.edict()) == "STEAM_0:0:5270238")
+			//	g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, "[TMP] Refreshing player model for " + target.pev.netname + " (" + state.refreshList.size() + ")\n");
 		
 			refresh_player_model(EHandle(plr), EHandle(target), false);
 			g_Scheduler.SetTimeout("refresh_player_model", 0.1f, EHandle(plr), EHandle(target), true);
@@ -351,6 +344,20 @@ void post_join(EHandle h_plr) {
 		}
 		
 		PlayerState@ state = getPlayerState(p);
+		
+		bool alreadyExists = false;
+		for (uint k = 0; k < state.refreshList.size(); k++) {
+			CBaseEntity@ existEnt = state.refreshList[k];
+			if (existEnt !is null and existEnt.entindex() == plr.entindex()) {
+				alreadyExists = true;
+				break;
+			}
+		}
+		
+		if (alreadyExists) {
+			continue;
+		}
+		
 		state.refreshList.insertLast(EHandle(plr));
 		state.finishedRefresh = false;
 	}
