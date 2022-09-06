@@ -3,6 +3,7 @@
 #include "GhostReplace"
 #include "PlayerModelPrecache"
 #include "util"
+#include "PluginHelpAnnouncements"
 
 // TODO:
 // - special characters in names mess up .listpoly table alignment
@@ -91,6 +92,8 @@ array<bool> g_wasObserver(33);
 
 bool g_paused = false; // debug performance issues
 
+int g_total_polys = 0;
+
 class Replacement {
 	EHandle h_ent; // entity being replaced
 	EHandle h_owner; // player which owns the entity (to know which model is used)
@@ -117,6 +120,7 @@ void PluginInit() {
 	g_Scheduler.SetInterval("update_ghost_models", 0.05, -1);
 	g_Scheduler.SetInterval("loadCrossPluginAfkState", 1.0f, -1);
 	g_Scheduler.SetInterval("fix_new_model_dl_bug", 0.2f, -1);
+	g_Scheduler.SetInterval("plugin_help_announcements", 1.0f, -1);
 	
 	loadPrecachedModels();
 }
@@ -811,6 +815,7 @@ void do_model_swaps(EHandle h_plr) {
 	int totalPolys;
 	int totalPlayers;
 	array<PlayerModelInfo> playerEnts = get_visible_players(totalPolys, totalPlayers);
+	g_total_polys = totalPolys;
 	
 	if (forPlayer is null or !forPlayer.IsConnected()) {
 		for ( int i = 1; i <= g_Engine.maxClients; i++ ) {		
