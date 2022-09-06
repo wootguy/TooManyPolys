@@ -564,6 +564,7 @@ array<PlayerModelInfo> get_visible_players(int&out totalPolys, int&out totalPlay
 	
 		PlayerModelInfo info;
 		@info.ent = @ent;
+		@info.owner = @owner;
 		info.desiredModel = getDesiredModel(owner);
 		info.desiredPolys = getModelPolyCount(owner, info.desiredModel);
 		info.replacePolys = info.desiredPolys;
@@ -642,7 +643,7 @@ void replace_highpoly_models(CBasePlayer@ looker, array<PlayerModelInfo>@ player
 	for (uint i = 0; i < playerEnts.size(); i++) {
 		playerEnts[i].currentReplacement.lod = LOD_HD;
 		playerEnts[i].replacePolys = playerEnts[i].desiredPolys;
-		playerEnts[i].canReplace = !state.modelSwaps.exists(playerEnts[i].steamid);		
+		playerEnts[i].canReplace = !state.modelSwaps.exists(playerEnts[i].steamid) and playerEnts[i].hasOwner();
 	}
 	
 	// Pick an LOD for ents in the PVS
@@ -652,7 +653,7 @@ void replace_highpoly_models(CBasePlayer@ looker, array<PlayerModelInfo>@ player
 		// Sort by poly count to replace highest polycount models first
 		playerEnts.sort(function(a,b) { return a.desiredPolys > b.desiredPolys; });
 		for (uint i = 0; i < playerEnts.size() && reducedPolys > maxAllowedPolys; i++) {		
-			if (!playerEnts[i].hasOwner() or !playerEnts[i].canReplace or !playerEnts[i].canReplaceSd()) {
+			if (!playerEnts[i].canReplace or !playerEnts[i].canReplaceSd()) {
 				continue;
 			}
 			
@@ -666,7 +667,7 @@ void replace_highpoly_models(CBasePlayer@ looker, array<PlayerModelInfo>@ player
 		// Sort by polys again now that the SD pass has changed poly counts for each player
 		playerEnts.sort(function(a,b) { return a.replacePolys > b.replacePolys; });
 		for (uint i = 0; i < playerEnts.size() && reducedPolys > maxAllowedPolys; i++) {
-			if (!playerEnts[i].hasOwner() or !playerEnts[i].canReplace) {
+			if (!playerEnts[i].canReplace) {
 				continue;
 			}
 			
@@ -684,7 +685,7 @@ void replace_highpoly_models(CBasePlayer@ looker, array<PlayerModelInfo>@ player
 		// Undo replacements for the lowest poly models first
 		playerEnts.sort(function(a,b) { return a.replacePolys < b.replacePolys; });
 		for (uint i = 0; i < playerEnts.size() && reducedPolys < maxAllowedPolys; i++) {
-			if (!playerEnts[i].hasOwner() or !playerEnts[i].canReplace or playerEnts[i].currentReplacement.lod != LOD_SD) {
+			if (!playerEnts[i].canReplace or playerEnts[i].currentReplacement.lod != LOD_SD) {
 				continue;
 			}
 			
