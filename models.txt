@@ -681,6 +681,7 @@ ark/12//
 arknights_ansel_v2/27284//
 arknights_exusiai-c2/15748//
 arknights_exusiai/16060/arknights_exusiai-c2/
+arknights_lappland/55156//
 arknights_lappland_v2/55156//
 arm_v2/74//
 armenian_mafia/1102//

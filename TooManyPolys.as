@@ -94,6 +94,8 @@ bool g_paused = false; // debug performance issues
 
 int g_total_polys = 0;
 
+CConCommand _extSwap( "modelswap_ext", "Model swap from other plugin", @extSwap ); // for muting from another plugin
+
 class Replacement {
 	EHandle h_ent; // entity being replaced
 	EHandle h_owner; // player which owns the entity (to know which model is used)
@@ -993,6 +995,91 @@ CBasePlayer@ getPlayerByName(CBasePlayer@ caller, string name) {
 	return null;
 }
 
+void extSwap(const CCommand@ args) {
+	println("[TooManyPolys] extSwap " + args[1] + " " + args[2] + " " + args[3]);
+	CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(atoi(args[1]));
+	
+	setModelSwap(plr, args[2].ToLowercase(), args[3], true);
+}
+
+void setModelSwap(CBasePlayer@ plr, string targetString, string replacementModel, bool quiet) {
+	string nicename;
+	string targetid = targetString.ToLowercase();
+	bool allPlayers = false;
+	
+	PlayerState@ state = getPlayerState(plr);
+	
+	if (targetid.Find("\\") == 0) {
+		allPlayers = true;
+	}
+	else if (targetid.Find("steam_0:") == 0) {
+		nicename = targetid;
+		nicename.ToUppercase();
+	} else {
+		CBasePlayer@ target = getPlayerByName(plr, targetid);
+		
+		if (target is null) {
+			return;
+		}
+		if (target.entindex() == plr.entindex()) {
+			g_PlayerFuncs.SayText(plr, "[ModelSwap] Can't modelswap yourself.\n");
+			return;
+		}	
+		
+		targetid = g_EngineFuncs.GetPlayerAuthId(target.edict());
+		targetid = targetid.ToLowercase();
+		nicename = target.pev.netname;
+	}
+	
+	string newmodel = defaultLowpolyModel;
+	bool shouldUnswap = true;
+	
+	if (replacementModel.Length() > 0) {
+		newmodel = replacementModel;
+		shouldUnswap = false;
+	}
+	
+	if (replacementModel == "?unswap?") {
+		shouldUnswap = true;
+		state.modelSwaps[targetid] = newmodel; // force an unswap
+	}
+	
+	if (shouldUnswap and state.modelSwapAll) {
+		state.modelSwapAll = false;
+		state.modelSwapAllModel = "";
+		state.modelSwaps.clear();
+		reset_models(plr);
+		do_model_swaps(plr);
+		if (!quiet)
+			g_PlayerFuncs.SayText(plr, "[ModelSwap] Cancelled model swaps on all players.\n");
+	}
+	else if (allPlayers) {
+		state.modelSwapAll = true;
+		state.modelSwapAllModel = newmodel;
+		state.modelSwaps.clear();
+		do_model_swaps(plr);
+		if (!quiet)
+			g_PlayerFuncs.SayText(plr, "[ModelSwap] Set model \"" + newmodel + "\" on all players.\n");
+	} else {
+		if (shouldUnswap and state.modelSwaps.exists(targetid)) {
+			state.modelSwapAll = false;
+			state.modelSwapAllModel = "";
+			state.modelSwaps.delete(targetid);
+			reset_models(plr);
+			do_model_swaps(plr);
+			if (!quiet)
+				g_PlayerFuncs.SayText(plr, "[ModelSwap] Cancelled model swap on player \"" + nicename + "\".\n");
+		} else {
+			state.modelSwapAll = false;
+			state.modelSwapAllModel = "";
+			state.modelSwaps[targetid] = newmodel;
+			do_model_swaps(plr);
+			if (!quiet)
+				g_PlayerFuncs.SayText(plr, "[ModelSwap] Set model \"" + newmodel + "\" on player \"" + nicename + "\".\n");
+		}
+	}
+}
+
 bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=false) {
 	PlayerState@ state = getPlayerState(plr);
 	bool isAdmin = g_PlayerFuncs.AdminLevel(plr) >= ADMIN_YES;
@@ -1003,7 +1090,7 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 			list_model_polys(plr);
 			return true;
 		}
-		else if (args[0] == ".modelswap") {
+		else if (args[0] == ".modelswap" || args[0] == ".swapmodel") {
 			if (args.ArgC() == 1) {
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, "Force other players to use a model of your choice with this commands:\n");
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, "    .modelswap [player] [model]\n");
@@ -1013,68 +1100,7 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 				return true;
 			}
 			
-			string nicename;
-			string targetid = args[1].ToLowercase();
-			bool allPlayers = false;
-			
-			if (targetid.Find("\\") == 0) {
-				allPlayers = true;
-			}
-			else if (targetid.Find("steam_0:") == 0) {
-				nicename = targetid;
-				nicename.ToUppercase();
-			} else {
-				CBasePlayer@ target = getPlayerByName(plr, targetid);
-				
-				if (target is null) {
-					return true;
-				}
-				if (target.entindex() == plr.entindex()) {
-					g_PlayerFuncs.SayText(plr, "[ModelSwap] Can't modelswap yourself.\n");
-					return true;
-				}	
-				
-				targetid = g_EngineFuncs.GetPlayerAuthId(target.edict());
-				targetid = targetid.ToLowercase();
-				nicename = target.pev.netname;
-			}
-			
-			string newmodel = defaultLowpolyModel;
-			if (args.ArgC() > 2) {
-				newmodel = args[2];
-			}
-			bool shouldUnswap = args.ArgC() == 2;
-			
-			if (shouldUnswap and state.modelSwapAll) {
-				state.modelSwapAll = false;
-				state.modelSwapAllModel = "";
-				state.modelSwaps.clear();
-				reset_models(plr);
-				do_model_swaps(plr);
-				g_PlayerFuncs.SayText(plr, "[ModelSwap] Cancelled model swaps on all players.\n");
-			}
-			else if (allPlayers) {
-				state.modelSwapAll = true;
-				state.modelSwapAllModel = newmodel;
-				state.modelSwaps.clear();
-				do_model_swaps(plr);
-				g_PlayerFuncs.SayText(plr, "[ModelSwap] Set model \"" + newmodel + "\" on all players.\n");
-			} else {
-				if (shouldUnswap and state.modelSwaps.exists(targetid)) {
-					state.modelSwapAll = false;
-					state.modelSwapAllModel = "";
-					state.modelSwaps.delete(targetid);
-					reset_models(plr);
-					do_model_swaps(plr);
-					g_PlayerFuncs.SayText(plr, "[ModelSwap] Cancelled model swap on player \"" + nicename + "\".\n");
-				} else {
-					state.modelSwapAll = false;
-					state.modelSwapAllModel = "";
-					state.modelSwaps[targetid] = newmodel;
-					do_model_swaps(plr);
-					g_PlayerFuncs.SayText(plr, "[ModelSwap] Set model \"" + newmodel + "\" on player \"" + nicename + "\".\n");
-				}
-			}	
+			setModelSwap(plr, args[1], args[2], false);
 	
 			return true;
 		}

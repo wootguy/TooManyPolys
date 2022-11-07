@@ -173,7 +173,6 @@ arcticx_v2/arcticx
 aresaka_v2/aresaka/cof_simon_zooyork
 argentina_v2/argentina
 arknights_ansel_v2/arknights_ansel
-arknights_lappland_v2/arknights_lappland
 arm_v2/arm
 arover_v2/arover
 arthur_pendragon/lt_santos
