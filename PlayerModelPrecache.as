@@ -80,6 +80,7 @@ void precachePlayerModels() {
 		if ( playerModelFileExists(model) ) {
 			string path = "models/player/" + model;
 			if (path.Length() > 64) {
+				// 22 char limit for model name
 				println("[TooManyPolys] Player model precache failed (65+ chars): " + path + "\n");
 				g_Log.PrintF("[TooManyPolys] Player model precache failed (65+ chars): " + path + "\n");
 			} else {
