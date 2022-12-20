@@ -1,6 +1,6 @@
 # TooManyPolys
 This plugin replaces high-poly player models with low-poly versions to improve FPS. Models are replaced in order from most to least polygons, until the visible 
-polygon count is below a limit that you set.
+polygon count is below a limit that you set. The plugin also prevents players from using old model names or unofficial model names introduced by players who copy-paste models and rename them.
 
 Looking for models with a low poly count? Try here:  
 https://wootguy.github.io/scmodels/
