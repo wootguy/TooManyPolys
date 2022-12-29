@@ -1036,7 +1036,7 @@ kz_mikutda_v4/kz_miku/kz_mikutda_v4_2
 kz_moeglados_v2/gs_moeglados_v2
 kz_nerutda_v2/kz_neru/kz_nerutda_v1/kz_neruu
 kz_rindo_swc_v2/kz_rindo_swc
-kz_touhou_momiji/touhou_momiji/touhou_momiji_hd
+kz_touhou_momiji_v2/kz_touhou_momiji/touhou_momiji/touhou_momiji_hd
 l4d2_ellis/lt_ellis
 l4d_bill_v2/l4d_bill
 l4d_francis_v2/l4d_francis
@@ -1978,8 +1978,8 @@ touhou_kogasa_v2/touhou_kogasa
 touhou_kotohime_v2/touhou_kotohime
 touhou_maribelhearn/touhou_maribelhearnayaedition
 touhou_meiling_v3/meiling/touhou_meiling/touhou_meiling_v2
+touhou_momiji/touhou_momiji_old
 touhou_momiji_inuba/lt_momiji/momiji_inubashiri/touhou_momiji_inubashiri
-touhou_momiji_v2/touhou_momiji/touhou_momiji_old
 touhou_nagae_iku_v2/touhou_iku/touhou_nagae_iku
 touhou_reimu/touhou_reimu_mmd
 touhou_remi_dress_v2/touhou_remi_dress
