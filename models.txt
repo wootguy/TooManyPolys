@@ -4379,7 +4379,7 @@ kz_rindo_swc_v2/43445//
 kz_rindo_v2/45407//
 kz_rindo_v3/48083//
 kz_tda_etihw/25908//
-kz_touhou_momiji/21355/touhou_momiji/2d_momiji_inubashiri
+kz_touhou_momiji_v2/21355//
 kz_yonaka/32112//
 kz_yosafire/29000//
 l4d2_coach/14231//
@@ -8161,8 +8161,8 @@ touhou_meiling_v3/30858//
 touhou_mia/6050/suwako/2d_touhou_suwakero
 touhou_minoriko/5855//
 touhou_mokou/16972//
+touhou_momiji/7548//2d_momiji_inubashiri
 touhou_momiji_inuba/20185/touhou_momiji/2d_momiji_inubashiri
-touhou_momiji_v2/21355//
 touhou_nagae_iku_v2/35981/touhou_ikusan/
 touhou_new_cirno/4562/cirno_3/
 touhou_new_dai/4958//2d_touhou_daiyousei
