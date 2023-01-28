@@ -484,7 +484,7 @@ class PlayerModelInfo {
 	PlayerModelInfo() {}
 	
 	CBaseEntity@ getOwner() {
-		if (ent.pev.classname == "deadplayer" or ent.pev.classname == "cycler") {
+		if (ent.pev.classname == "deadplayer" or ent.pev.classname == "monster_ghost") {
 			if (owner !is null) {
 				return @owner;
 			} else {

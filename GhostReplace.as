@@ -93,7 +93,7 @@ class GhostReplace {
 		keys["spawnflags"] = "" + ghostSrc.pev.spawnflags;
 		keys["model"] = model;
 		
-		CBaseMonster@ ghostCopy = cast<CBaseMonster@>(g_EntityFuncs.CreateEntity("cycler", keys, true));
+		CBaseMonster@ ghostCopy = cast<CBaseMonster@>(g_EntityFuncs.CreateEntity("monster_ghost", keys, true));
 		ghostCopy.pev.solid = ghostSrc.pev.solid;
 		ghostCopy.pev.movetype =  ghostSrc.pev.movetype;
 		ghostCopy.pev.takedamage = ghostSrc.pev.takedamage;
