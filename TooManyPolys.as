@@ -103,6 +103,11 @@ class Replacement {
 	string model;
 }
 
+array<string> g_disabled_maps = {
+	"sc5x_bonus",
+	"hideandseek"
+};
+
 void PluginInit() {
 	g_Module.ScriptInfo.SetAuthor( "w00tguy" );
 	g_Module.ScriptInfo.SetContactInfo( "asdf" );
@@ -812,6 +817,10 @@ void check_if_swaps_needed() {
 }
 
 void do_model_swaps(EHandle h_plr) {
+	if (g_disabled_maps.find(g_Engine.mapname) != -1) {
+		return;
+	}
+
 	CBasePlayer@ forPlayer = cast<CBasePlayer@>(h_plr.GetEntity());
 	
 	int totalPolys;
@@ -1091,6 +1100,11 @@ bool doCommand(CBasePlayer@ plr, const CCommand@ args, bool isConsoleCommand=fal
 			return true;
 		}
 		else if (args[0] == ".modelswap" || args[0] == ".swapmodel") {
+			if (g_disabled_maps.find(g_Engine.mapname) != -1) {
+				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, "Model swaps are disabled on this map.\n");
+				return true;
+			}
+	
 			if (args.ArgC() == 1) {
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, "Force other players to use a model of your choice with this commands:\n");
 				g_PlayerFuncs.ClientPrint(plr, HUD_PRINTTALK, "    .modelswap [player] [model]\n");
