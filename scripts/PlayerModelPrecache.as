@@ -101,7 +101,7 @@ void precachePlayerModels() {
 		for ( uint i = 0; i < g_precachedModels.size(); i++ ) {
 			keys["$s_model" + i] = g_precachedModels[i];
 		}
-		g_EntityFuncs.CreateEntity( "info_target", keys, true );
+		CBaseEntity@ ent = g_EntityFuncs.CreateEntity( "info_target", keys, true );
 	}
 	
 	{
