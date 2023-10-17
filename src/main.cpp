@@ -867,39 +867,6 @@ void list_model_polys(edict_t* plr) {
 	ClientPrint(plr, HUD_PRINTCONSOLE, ("Safe model polys = " + formatInteger(perPlayerLimit) + "    (models below this limit will never be replaced)\n\n").c_str());
 }
 
-// find a player by name || partial name
-edict_t* getPlayerByName(edict_t* caller, string name) {
-	name = toLowerCase(name);
-	int partialMatches = 0;
-	edict_t* partialMatch;
-	edict_t* ent = NULL;
-	do {
-		ent = g_engfuncs.pfnFindEntityByString(ent, "classname", "player");
-		if (isValidFindEnt(ent)) {
-			string plrName = toLowerCase(STRING(ent->v.netname));
-			if (plrName == name)
-				return ent;
-			else if (plrName.find(name) != string::npos)
-			{
-				partialMatch = ent;
-				partialMatches++;
-			}
-		}
-	} while (isValidFindEnt(ent));
-
-	if (partialMatches == 1) {
-		return partialMatch;
-	}
-	else if (partialMatches > 1) {
-		ClientPrint(caller, HUD_PRINTTALK, ("[ModelSwap] Swap failed. There are " + to_string(partialMatches) + " players that have "" + name + "" in their name. Be more specific.\n").c_str());
-	}
-	else {
-		ClientPrint(caller, HUD_PRINTTALK, ("[ModelSwap] Swap failed. There is no player named \"" + name + "\".\n").c_str());
-	}
-
-	return NULL;
-}
-
 void extSwap() {
 	int icaller = atoi(CMD_ARGV(1));
 	string target = CMD_ARGV(2);
